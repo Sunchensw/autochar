@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AutoChar</title>
+    <link rel="stylesheet" href="/static/style.css?v={{ style_version }}">
+</head>
+<body>
+    <main class="shell">
+        <section class="hero">
+            <div class="hero-top">
+                <div>
+                    <p class="eyebrow">Video To Process Narrative</p>
+                    <h1>把桌面录制视频整理成完整的流程说明</h1>
+                </div>
+                <button id="settings-trigger" class="secondary-button" type="button">模型设置</button>
+            </div>
+        </section>
+
+        <section class="card">
+            <form id="upload-form">
+                <label class="upload-box">
+                    <span>选择录屏视频</span>
+                    <input id="video-file" type="file" accept="video/*" required>
+                </label>
+                <label class="toggle-row">
+                    <input id="use-multimodal" type="checkbox" {% if multimodal_enabled %}checked{% endif %}>
+                    <span>启用多模态大模型增强流程说明</span>
+                </label>
+                <p class="hint" id="model-summary">
+                    当前模型：{{ default_model }}，Base URL：{{ default_base_url }}，
+                    {% if saved_settings.has_api_key %}已在服务端保存 API Key（{{ saved_settings.api_key_masked }}）。{% else %}未在服务端保存 API Key。{% endif %}
+                </p>
+                <button type="submit">开始分析</button>
+            </form>
+        </section>
+
+        <section class="card">
+            <h2>流程说明</h2>
+            <div id="narrative" class="narrative">等待上传视频…</div>
+        </section>
+
+        <section class="card">
+            <h2>结构化结果</h2>
+            <pre id="result">等待上传视频…</pre>
+        </section>
+    </main>
+
+    <div id="settings-modal" class="modal-shell hidden" aria-hidden="true">
+        <div class="modal-card">
+            <div class="modal-head">
+                <h2>模型设置</h2>
+                <button id="settings-close" class="icon-button" type="button">×</button>
+            </div>
+            <div class="settings-grid">
+                <label class="settings-field">
+                    <span>模型名称</span>
+                    <input id="setting-model" type="text" value="{{ default_model }}" placeholder="例如 gpt-4.1-mini">
+                </label>
+                <label class="settings-field">
+                    <span>API Base URL</span>
+                    <input id="setting-base-url" type="text" value="{{ default_base_url }}" placeholder="例如 https://api.openai.com/v1">
+                </label>
+                <label class="settings-field">
+                    <span>API Key</span>
+                    <input id="setting-api-key" type="password" placeholder="{% if saved_settings.has_api_key %}已保存，留空则保持不变{% else %}输入你的 API Key{% endif %}">
+                </label>
+            </div>
+            <p class="hint" id="settings-status">
+                {% if saved_settings.has_api_key %}
+                当前服务端已保存 API Key：{{ saved_settings.api_key_masked }}
+                {% else %}
+                当前服务端未保存 API Key。
+                {% endif %}
+            </p>
+            <div class="modal-actions">
+                <button id="settings-save" class="secondary-button" type="button">保存到服务端</button>
+                <button id="settings-clear" class="ghost-button" type="button">清空服务端 Key</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const form = document.getElementById("upload-form");
+        const result = document.getElementById("result");
+        const narrative = document.getElementById("narrative");
+        const modelSummary = document.getElementById("model-summary");
+        const modal = document.getElementById("settings-modal");
+        const settingsTrigger = document.getElementById("settings-trigger");
+        const settingsClose = document.getElementById("settings-close");
+        const settingsSave = document.getElementById("settings-save");
+        const settingsClear = document.getElementById("settings-clear");
+        const settingsStatus = document.getElementById("settings-status");
+        const modelInput = document.getElementById("setting-model");
+        const baseUrlInput = document.getElementById("setting-base-url");
+        const apiKeyInput = document.getElementById("setting-api-key");
+
+        async function fetchSettings() {
+            const response = await fetch("/settings");
+            return await response.json();
+        }
+
+        function refreshSummary(settings) {
+            const keyStatus = settings.has_api_key ? `已在服务端保存 API Key（${settings.api_key_masked}）` : "未在服务端保存 API Key";
+            modelSummary.textContent = `当前模型：${settings.model}，Base URL：${settings.base_url}，${keyStatus}。`;
+            settingsStatus.textContent = settings.has_api_key
+                ? `当前服务端已保存 API Key：${settings.api_key_masked}`
+                : "当前服务端未保存 API Key。";
+            modelInput.value = settings.model || modelInput.value;
+            baseUrlInput.value = settings.base_url || baseUrlInput.value;
+            apiKeyInput.value = "";
+            apiKeyInput.placeholder = settings.has_api_key ? "已保存，留空则保持不变" : "输入你的 API Key";
+        }
+
+        function openModal() {
+            modal.classList.remove("hidden");
+            modal.setAttribute("aria-hidden", "false");
+        }
+
+        function closeModal() {
+            modal.classList.add("hidden");
+            modal.setAttribute("aria-hidden", "true");
+        }
+
+        settingsTrigger.addEventListener("click", openModal);
+        settingsClose.addEventListener("click", closeModal);
+
+        settingsSave.addEventListener("click", async () => {
+            const response = await fetch("/settings", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    model: modelInput.value.trim(),
+                    base_url: baseUrlInput.value.trim(),
+                    api_key: apiKeyInput.value.trim(),
+                    clear_api_key: false
+                })
+            });
+            const data = await response.json();
+            refreshSummary(data);
+            closeModal();
+        });
+
+        settingsClear.addEventListener("click", async () => {
+            const response = await fetch("/settings", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    model: modelInput.value.trim(),
+                    base_url: baseUrlInput.value.trim(),
+                    api_key: "",
+                    clear_api_key: true
+                })
+            });
+            const data = await response.json();
+            refreshSummary(data);
+        });
+
+        modal.addEventListener("click", (event) => {
+            if (event.target === modal) {
+                closeModal();
+            }
+        });
+
+        form.addEventListener("submit", async (event) => {
+            event.preventDefault();
+            const input = document.getElementById("video-file");
+            if (!input.files.length) {
+                return;
+            }
+
+            narrative.textContent = "正在生成流程说明，请稍候...";
+            result.textContent = "正在分析，请稍候...";
+
+            const formData = new FormData();
+            formData.append("file", input.files[0]);
+            formData.append("use_multimodal", document.getElementById("use-multimodal").checked);
+
+            const response = await fetch("/analyze", {
+                method: "POST",
+                body: formData
+            });
+
+            const data = await response.json();
+            const processDescription = data.process_description || {};
+            narrative.textContent = processDescription.full_text || "当前未生成完整流程说明。";
+            result.textContent = JSON.stringify(data, null, 2);
+        });
+
+        fetchSettings().then(refreshSummary);
+    </script>
+</body>
+</html>
