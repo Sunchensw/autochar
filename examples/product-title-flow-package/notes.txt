@@ -1,0 +1,1 @@
+示例流程包用于本地 demo-admin。截图为占位 PNG，不包含密码、验证码、token、cookie 或浏览器存储。

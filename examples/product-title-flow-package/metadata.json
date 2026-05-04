@@ -1,0 +1,12 @@
+{
+  "toolVersion": "0.1.0",
+  "browser": "Playwright Chromium",
+  "viewport": {
+    "width": 1365,
+    "height": 768
+  },
+  "platform": "win32",
+  "screenshotCount": 8,
+  "containsPassword": false,
+  "containsCookies": false
+}

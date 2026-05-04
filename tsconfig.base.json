@@ -1,0 +1,36 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "lib": [
+      "ES2022",
+      "DOM"
+    ],
+    "strict": true,
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "resolveJsonModule": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "declaration": true,
+    "baseUrl": ".",
+    "paths": {
+      "@autochar/shared": [
+        "packages/shared/src/index.ts"
+      ],
+      "@autochar/recorder-core": [
+        "packages/recorder-core/src/index.ts"
+      ],
+      "@autochar/flow-converter": [
+        "packages/flow-converter/src/index.ts"
+      ],
+      "@autochar/batch-runner": [
+        "apps/batch-runner/src/index.ts"
+      ]
+    },
+    "types": [
+      "node"
+    ]
+  }
+}

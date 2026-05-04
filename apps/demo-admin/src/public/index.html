@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Autochar Demo Admin</title>
+    <link rel="stylesheet" href="/style.css">
+  </head>
+  <body>
+    <main class="shell">
+      <header>
+        <h1>商品管理</h1>
+        <p>本地授权演示后台</p>
+      </header>
+      <section class="toolbar">
+        <input id="skuInput" name="sku" placeholder="请输入商品名称" autocomplete="off">
+        <button id="searchButton" type="button">搜索</button>
+      </section>
+      <section>
+        <table>
+          <thead>
+            <tr>
+              <th>SKU</th>
+              <th>标题</th>
+              <th>操作</th>
+            </tr>
+          </thead>
+          <tbody id="productRows"></tbody>
+        </table>
+      </section>
+      <section id="editor" class="editor" hidden>
+        <h2>编辑商品</h2>
+        <input id="titleInput" name="title">
+        <button id="saveButton" type="button">保存</button>
+      </section>
+      <div id="toast" class="toast" role="status" aria-live="polite"></div>
+    </main>
+    <script src="/app.js"></script>
+  </body>
+</html>

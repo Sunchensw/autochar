@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Autochar Recorder</title>
+    <link rel="stylesheet" href="./style.css">
+  </head>
+  <body>
+    <main>
+      <header>
+        <div>
+          <h1>Autochar Recorder</h1>
+          <p>录制授权后台操作并导出 flow package</p>
+        </div>
+        <span id="statusBadge">未打开</span>
+      </header>
+
+      <section class="panel">
+        <label>授权后台 URL</label>
+        <div class="row">
+          <input id="urlInput" value="http://localhost:4173" spellcheck="false">
+          <button id="openButton">打开 Chromium</button>
+        </div>
+      </section>
+
+      <section class="panel controls">
+        <button id="startButton" disabled>开始录制</button>
+        <button id="stopButton" disabled>停止录制</button>
+        <button id="exportButton" disabled>导出 .flow.zip</button>
+        <button id="closeButton">关闭浏览器</button>
+      </section>
+
+      <section class="grid">
+        <div class="panel">
+          <label>流程名称</label>
+          <input id="flowName" value="Autochar Recording">
+          <label>备注</label>
+          <textarea id="notes" rows="7" placeholder="记录授权范围、人工复核点或页面说明"></textarea>
+        </div>
+        <div class="panel">
+          <h2>录制状态</h2>
+          <dl>
+            <dt>步骤数</dt><dd id="stepCount">0</dd>
+            <dt>截图数</dt><dd id="screenshotCount">0</dd>
+            <dt>最后动作</dt><dd id="lastAction">-</dd>
+            <dt>导出路径</dt><dd id="exportPath">-</dd>
+          </dl>
+        </div>
+      </section>
+
+      <section class="notice">
+        `.flow.zip` 会包含页面截图 PNG。不会导出密码、验证码、token、cookie、localStorage 或 sessionStorage。
+      </section>
+      <pre id="log"></pre>
+    </main>
+    <script src="./app.js"></script>
+  </body>
+</html>

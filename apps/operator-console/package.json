@@ -1,0 +1,26 @@
+{
+  "name": "@autochar/operator-console",
+  "version": "0.1.0",
+  "private": true,
+  "productName": "Autochar Operator Console",
+  "main": "dist/main.js",
+  "scripts": {
+    "build": "tsup src/main.ts src/preload.ts --format cjs --platform node --external electron --clean --out-dir dist",
+    "start": "npm run build && electron .",
+    "dist:setup": "electron-builder --config electron-builder.yml --win nsis",
+    "dist:portable": "electron-builder --config electron-builder.yml --win portable",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@autochar/batch-runner": "file:../batch-runner",
+    "@autochar/flow-converter": "file:../../packages/flow-converter",
+    "@autochar/shared": "file:../../packages/shared",
+    "adm-zip": "^0.5.16",
+    "playwright": "^1.45.3",
+    "xlsx": "^0.18.5"
+  },
+  "devDependencies": {
+    "electron": "^31.3.1",
+    "electron-builder": "^24.13.3"
+  }
+}

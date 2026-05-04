@@ -1,0 +1,14 @@
+{
+  "name": "@autochar/demo-admin",
+  "version": "0.1.0",
+  "private": true,
+  "main": "dist/server.js",
+  "scripts": {
+    "build": "tsup src/server.ts --format cjs --platform node --clean",
+    "start": "tsx src/server.ts",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "express": "^4.19.2"
+  }
+}

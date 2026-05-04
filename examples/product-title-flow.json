@@ -1,0 +1,260 @@
+{
+  "schemaVersion": "1.0.0",
+  "name": "Product Title Update",
+  "startUrl": "http://localhost:4173",
+  "createdAt": "2026-01-01T00:00:00.000Z",
+  "steps": [
+    {
+      "id": "step-001",
+      "order": 1,
+      "type": "goto",
+      "label": "打开商品列表页",
+      "url": "http://localhost:4173",
+      "title": "Autochar Demo Admin",
+      "valuePolicy": "notStored",
+      "screenshot": "screenshots/step-001-start.png",
+      "screenshotKind": "viewport",
+      "riskLevel": "low",
+      "requiresConfirmation": false,
+      "requiresManualReview": false,
+      "timestamp": "2026-01-01T00:00:00.000Z"
+    },
+    {
+      "id": "step-002",
+      "order": 2,
+      "type": "fill",
+      "label": "输入商品关键词",
+      "url": "http://localhost:4173",
+      "title": "Autochar Demo Admin",
+      "value": "{{sku}}",
+      "variable": "sku",
+      "valuePolicy": "plain",
+      "sensitive": false,
+      "selectors": {
+        "primary": {
+          "kind": "placeholder",
+          "value": "请输入商品名称",
+          "uniqueAtRecordTime": true,
+          "countAtRecordTime": 1
+        },
+        "fallbacks": [
+          {
+            "kind": "name",
+            "value": "sku"
+          },
+          {
+            "kind": "css",
+            "value": "input[name=\"sku\"]"
+          }
+        ]
+      },
+      "element": {
+        "tagName": "INPUT",
+        "name": "sku",
+        "placeholder": "请输入商品名称"
+      },
+      "screenshot": "screenshots/step-002-fill.png",
+      "screenshotKind": "viewport",
+      "riskLevel": "low",
+      "requiresConfirmation": false,
+      "requiresManualReview": false,
+      "timestamp": "2026-01-01T00:00:01.000Z"
+    },
+    {
+      "id": "step-003",
+      "order": 3,
+      "type": "click",
+      "label": "点击搜索",
+      "url": "http://localhost:4173",
+      "title": "Autochar Demo Admin",
+      "valuePolicy": "notStored",
+      "selectors": {
+        "primary": {
+          "kind": "role",
+          "value": "button",
+          "role": "button",
+          "name": "搜索",
+          "uniqueAtRecordTime": true,
+          "countAtRecordTime": 1
+        },
+        "fallbacks": [
+          {
+            "kind": "text",
+            "value": "搜索"
+          },
+          {
+            "kind": "css",
+            "value": "#searchButton"
+          }
+        ]
+      },
+      "element": {
+        "tagName": "BUTTON",
+        "id": "searchButton",
+        "text": "搜索"
+      },
+      "networkHints": [
+        "/api/products"
+      ],
+      "screenshot": "screenshots/step-003-click.png",
+      "screenshotKind": "viewport",
+      "riskLevel": "low",
+      "requiresConfirmation": false,
+      "requiresManualReview": false,
+      "timestamp": "2026-01-01T00:00:02.000Z"
+    },
+    {
+      "id": "step-004",
+      "order": 4,
+      "type": "click",
+      "label": "点击编辑",
+      "url": "http://localhost:4173",
+      "title": "Autochar Demo Admin",
+      "valuePolicy": "notStored",
+      "selectors": {
+        "primary": {
+          "kind": "text",
+          "value": "编辑",
+          "uniqueAtRecordTime": false,
+          "countAtRecordTime": 3
+        },
+        "fallbacks": [
+          {
+            "kind": "css",
+            "value": "button[data-edit]"
+          }
+        ]
+      },
+      "element": {
+        "tagName": "BUTTON",
+        "text": "编辑"
+      },
+      "screenshot": "screenshots/step-004-click.png",
+      "screenshotKind": "viewport",
+      "riskLevel": "low",
+      "requiresConfirmation": false,
+      "requiresManualReview": true,
+      "timestamp": "2026-01-01T00:00:03.000Z"
+    },
+    {
+      "id": "step-005",
+      "order": 5,
+      "type": "fill",
+      "label": "输入新标题",
+      "url": "http://localhost:4173",
+      "title": "Autochar Demo Admin",
+      "value": "{{newTitle}}",
+      "variable": "newTitle",
+      "valuePolicy": "plain",
+      "sensitive": false,
+      "selectors": {
+        "primary": {
+          "kind": "name",
+          "value": "title",
+          "uniqueAtRecordTime": true,
+          "countAtRecordTime": 1
+        },
+        "fallbacks": [
+          {
+            "kind": "css",
+            "value": "input[name=\"title\"]"
+          }
+        ]
+      },
+      "element": {
+        "tagName": "INPUT",
+        "name": "title"
+      },
+      "screenshot": "screenshots/step-005-fill.png",
+      "screenshotKind": "viewport",
+      "riskLevel": "low",
+      "requiresConfirmation": false,
+      "requiresManualReview": false,
+      "timestamp": "2026-01-01T00:00:04.000Z"
+    },
+    {
+      "id": "step-006",
+      "order": 6,
+      "type": "click",
+      "label": "点击保存",
+      "url": "http://localhost:4173",
+      "title": "Autochar Demo Admin",
+      "valuePolicy": "notStored",
+      "selectors": {
+        "primary": {
+          "kind": "role",
+          "value": "button",
+          "role": "button",
+          "name": "保存",
+          "uniqueAtRecordTime": true,
+          "countAtRecordTime": 1
+        },
+        "fallbacks": [
+          {
+            "kind": "text",
+            "value": "保存"
+          },
+          {
+            "kind": "css",
+            "value": "#saveButton"
+          }
+        ]
+      },
+      "element": {
+        "tagName": "BUTTON",
+        "id": "saveButton",
+        "text": "保存"
+      },
+      "networkHints": [
+        "/api/products/"
+      ],
+      "screenshot": "screenshots/step-006-click.png",
+      "screenshotKind": "viewport",
+      "riskLevel": "high",
+      "requiresConfirmation": true,
+      "requiresManualReview": false,
+      "timestamp": "2026-01-01T00:00:05.000Z"
+    },
+    {
+      "id": "step-007",
+      "order": 7,
+      "type": "assertion",
+      "label": "验证保存成功",
+      "url": "http://localhost:4173",
+      "title": "Autochar Demo Admin",
+      "value": "保存成功",
+      "valuePolicy": "notStored",
+      "selectors": {
+        "primary": {
+          "kind": "text",
+          "value": "保存成功",
+          "uniqueAtRecordTime": true,
+          "countAtRecordTime": 1
+        },
+        "fallbacks": [
+          {
+            "kind": "css",
+            "value": "#toast"
+          }
+        ]
+      },
+      "assertions": [
+        {
+          "kind": "visibleText",
+          "value": "保存成功"
+        }
+      ],
+      "element": {
+        "tagName": "DIV",
+        "id": "toast",
+        "text": "保存成功"
+      },
+      "screenshot": "screenshots/step-007-assertion.png",
+      "screenshotKind": "viewport",
+      "riskLevel": "low",
+      "requiresConfirmation": false,
+      "requiresManualReview": false,
+      "timestamp": "2026-01-01T00:00:06.000Z"
+    }
+  ]
+}
