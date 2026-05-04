@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import AdmZip from 'adm-zip';
 import { describe, expect, test } from 'vitest';
 import { writeFlowPackage } from '../src';
 import type { FlowMetadata, FlowPackage } from '@autochar/shared';
@@ -72,10 +73,13 @@ test('writeFlowPackage creates a validated zip package', async () => {
     flow,
     metadata,
     notes: 'test notes',
+    reviewMarkdown: '# Review\n\n- Step count: 2\n',
     screenshotsDir: shots,
     outputDir: dir,
     packageName: 'export-flow'
   });
 
   expect(fs.existsSync(zipPath)).toBe(true);
+  const zip = new AdmZip(zipPath);
+  expect(zip.getEntry('review.md')?.getData().toString('utf8')).toContain('# Review');
 });

@@ -9,4 +9,17 @@ describe('recorder Playwright bootstrap order', () => {
     expect(mainSource).not.toContain("import { RecorderSession } from '@autochar/recorder-core'");
     expect(mainSource).toContain("await import('@autochar/recorder-core')");
   });
+
+  test('starts recording automatically after Chromium opens', () => {
+    const openHandler = mainSource.slice(
+      mainSource.indexOf("ipcMain.handle('recorder:open'"),
+      mainSource.indexOf("ipcMain.handle('recorder:start'")
+    );
+
+    expect(openHandler).toContain('await current.open(startUrl)');
+    expect(openHandler).toContain('await current.startRecording()');
+    expect(openHandler.indexOf('await current.open(startUrl)')).toBeLessThan(
+      openHandler.indexOf('await current.startRecording()')
+    );
+  });
 });

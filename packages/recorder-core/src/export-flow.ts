@@ -11,6 +11,7 @@ export interface WriteFlowPackageInput {
   flow: FlowPackage;
   metadata: FlowMetadata;
   notes: string;
+  reviewMarkdown?: string;
   screenshotsDir: string;
   outputDir: string;
   packageName?: string;
@@ -45,6 +46,9 @@ export async function writeFlowPackage(input: WriteFlowPackageInput): Promise<st
   await fs.writeFile(path.join(packageDir, 'metadata.json'), `${JSON.stringify(input.metadata, null, 2)}\n`, 'utf8');
   await copyScreenshots(input.screenshotsDir, path.join(packageDir, 'screenshots'));
   await fs.writeFile(path.join(packageDir, 'notes.txt'), input.notes || 'No notes.', 'utf8');
+  if (input.reviewMarkdown?.trim()) {
+    await fs.writeFile(path.join(packageDir, 'review.md'), input.reviewMarkdown, 'utf8');
+  }
 
   const validation = validateBasicFlow({ flow: input.flow, packageDir });
   if (!validation.ok) {

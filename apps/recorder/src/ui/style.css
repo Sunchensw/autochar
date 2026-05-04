@@ -64,6 +64,18 @@ dt {
   gap: 14px;
 }
 
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.compact-row {
+  gap: 8px;
+}
+
 input,
 textarea {
   width: 100%;
@@ -115,6 +127,26 @@ dd {
 
 pre {
   min-height: 48px;
+  max-height: 260px;
+  overflow: auto;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
+  border: 1px solid #dce3ea;
+  border-radius: 6px;
+  background: #0f172a;
+  color: #dbeafe;
+  padding: 12px;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.debug-panel {
+  margin-top: 14px;
+}
+
+.review-panel textarea {
+  min-height: 280px;
+  font-family: Consolas, "Courier New", monospace;
+  font-size: 13px;
+  line-height: 1.5;
 }

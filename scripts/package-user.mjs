@@ -22,6 +22,7 @@ function findExe(dir, needle) {
 
 run('node', ['scripts/ensure-playwright-browsers.mjs']);
 run('npm', ['run', 'build', '-w', '@autochar/shared']);
+run('npm', ['run', 'build', '-w', '@autochar/flow-converter']);
 run('npm', ['run', 'build', '-w', '@autochar/recorder-core']);
 run('npm', ['run', 'build', '-w', '@autochar/recorder']);
 run('npm', ['run', 'dist:setup', '-w', '@autochar/recorder']);

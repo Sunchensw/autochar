@@ -37,6 +37,13 @@ function fillExpression(step: FlowStep): string {
   return q(step.value ?? '');
 }
 
+function locatorRootForStep(step: FlowStep): string {
+  return (step.framePath ?? []).reduce(
+    (root, frameSelector) => `${root}.frameLocator(${q(frameSelector)})`,
+    'page'
+  );
+}
+
 function actionForStep(step: FlowStep): string[] {
   const lines: string[] = [];
   if (step.riskLevel === 'high' || step.requiresConfirmation) {
@@ -61,7 +68,8 @@ function actionForStep(step: FlowStep): string[] {
     return lines;
   }
 
-  const locator = step.selectors ? selectorSetToLocator(step.selectors) : 'page.locator("body")';
+  const root = locatorRootForStep(step);
+  const locator = step.selectors ? selectorSetToLocator(step.selectors, root) : `${root}.locator("body")`;
   const action =
     step.type === 'fill'
       ? `${locator}.fill(${fillExpression(step)})`
@@ -88,7 +96,7 @@ function actionForStep(step: FlowStep): string[] {
   if (step.assertions?.length) {
     for (const assertion of step.assertions) {
       if (assertion.selector) {
-        lines.push(`  await expect(${selectorSetToLocator(assertion.selector)}).toBeVisible();`);
+        lines.push(`  await expect(${selectorSetToLocator(assertion.selector, root)}).toBeVisible();`);
       } else if (assertion.value) {
         lines.push(`  await expect(page.getByText(${q(assertion.value)})).toBeVisible();`);
       }

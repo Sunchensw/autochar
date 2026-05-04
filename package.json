@@ -16,6 +16,7 @@
     "operator": "npm run start -w @autochar/operator-console",
     "convert": "npm run start -w @autochar/flow-converter --",
     "batch": "npm run start -w @autochar/batch-runner --",
+    "diagnose:recorder": "node scripts/diagnose-recorder-page.mjs",
     "prepare:browsers": "node scripts/ensure-playwright-browsers.mjs",
     "package:user": "node scripts/package-user.mjs",
     "package:owner": "node scripts/package-owner.mjs",

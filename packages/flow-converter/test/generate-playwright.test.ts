@@ -23,3 +23,28 @@ test('generates Playwright TypeScript and compiles to mjs', async () => {
 
   await expect(fs.access(outputPath)).resolves.toBeUndefined();
 });
+
+test('generates frame locators for iframe steps', async () => {
+  const flowPath = path.resolve('examples/product-title-flow.json');
+  const flow = parseFlowPackage(JSON.parse(await fs.readFile(flowPath, 'utf8')));
+  const frameFlow = {
+    ...flow,
+    steps: [
+      {
+        ...flow.steps[1],
+        type: 'click' as const,
+        value: undefined,
+        variable: undefined,
+        framePath: ['iframe#product-editor'],
+        selectors: {
+          primary: { kind: 'css' as const, value: 'button.save' },
+          fallbacks: [{ kind: 'text' as const, value: 'Save' }]
+        }
+      }
+    ]
+  };
+
+  const source = generatePlaywrightScript(frameFlow, { functionName: 'saveInsideFrame' });
+
+  expect(source).toContain("page.frameLocator('iframe#product-editor').locator('button.save').click()");
+});

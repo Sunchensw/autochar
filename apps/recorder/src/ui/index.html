@@ -17,15 +17,15 @@
       </header>
 
       <section class="panel">
-        <label>授权后台 URL</label>
+        <label for="urlInput">授权后台 URL</label>
         <div class="row">
           <input id="urlInput" value="http://localhost:4173" spellcheck="false">
-          <button id="openButton">打开 Chromium</button>
+          <button id="openButton">打开并开始录制</button>
         </div>
       </section>
 
       <section class="panel controls">
-        <button id="startButton" disabled>开始录制</button>
+        <button id="startButton" disabled>重新开始录制</button>
         <button id="stopButton" disabled>停止录制</button>
         <button id="exportButton" disabled>导出 .flow.zip</button>
         <button id="closeButton">关闭浏览器</button>
@@ -33,9 +33,9 @@
 
       <section class="grid">
         <div class="panel">
-          <label>流程名称</label>
+          <label for="flowName">流程名称</label>
           <input id="flowName" value="Autochar Recording">
-          <label>备注</label>
+          <label for="notes">备注</label>
           <textarea id="notes" rows="7" placeholder="记录授权范围、人工复核点或页面说明"></textarea>
         </div>
         <div class="panel">
@@ -45,14 +45,30 @@
             <dt>截图数</dt><dd id="screenshotCount">0</dd>
             <dt>最后动作</dt><dd id="lastAction">-</dd>
             <dt>导出路径</dt><dd id="exportPath">-</dd>
+            <dt>当前状态</dt><dd id="commandStatus">等待操作</dd>
           </dl>
         </div>
       </section>
 
       <section class="notice">
-        `.flow.zip` 会包含页面截图 PNG。不会导出密码、验证码、token、cookie、localStorage 或 sessionStorage。
+        `.flow.zip` 会包含页面截图 PNG、采集调试日志和 review.md。不会导出密码、验证码、token、cookie、localStorage 或 sessionStorage。
       </section>
-      <pre id="log"></pre>
+
+      <section class="panel review-panel">
+        <div class="section-header">
+          <h2>流程审核文本</h2>
+          <div class="row compact-row">
+            <button id="copyReviewButton" disabled>复制审核文本</button>
+            <button id="saveReviewButton" disabled>保存 Markdown</button>
+          </div>
+        </div>
+        <textarea id="reviewMarkdown" rows="12" readonly placeholder="停止录制后会自动生成 Markdown 审核文本"></textarea>
+      </section>
+
+      <section class="panel debug-panel">
+        <h2>采集调试日志</h2>
+        <pre id="log">暂无采集日志</pre>
+      </section>
     </main>
     <script src="./app.js"></script>
   </body>
