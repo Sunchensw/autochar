@@ -32,4 +32,12 @@ describe('recorder extension package', () => {
       expect(fs.existsSync(path.join(extensionDir, file))).toBe(true);
     }
   });
+
+  test('popup connection test validates the event token, not only health', () => {
+    const popupScript = fs.readFileSync(path.join(extensionDir, 'popup.js'), 'utf8');
+
+    expect(popupScript).toContain('/events');
+    expect(popupScript).toContain('x-autochar-token');
+    expect(popupScript).toContain('autochar connection test');
+  });
 });

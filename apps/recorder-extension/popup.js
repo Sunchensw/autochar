@@ -37,10 +37,28 @@ async function save() {
 
 async function testConnection() {
   await save();
+  if (!token.value.trim()) {
+    setStatus('连接失败：请先填写 Recorder 页面显示的连接令牌');
+    return;
+  }
   try {
-    const response = await fetch(`${normalizedUrl()}/health`);
+    const response = await fetch(`${normalizedUrl()}/events`, {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        'x-autochar-token': token.value.trim()
+      },
+      body: JSON.stringify({
+        type: 'debug',
+        label: 'autochar connection test',
+        element: { tagName: 'HTML' },
+        url: 'chrome-extension://autochar-recorder-bridge/popup',
+        title: 'Autochar Recorder',
+        timestamp: new Date().toISOString()
+      })
+    });
     if (!response.ok) {
-      setStatus(`连接失败：HTTP ${response.status}`);
+      setStatus(response.status === 401 ? '连接失败：令牌不匹配，请复制 Recorder 页面里的最新令牌' : `连接失败：HTTP ${response.status}`);
       return;
     }
     const result = await response.json();
