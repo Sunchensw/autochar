@@ -27,3 +27,7 @@ extraResources:
     to: ms-playwright
     filter:
       - '**/*'
+  - from: ../recorder-extension
+    to: recorder-extension
+    filter:
+      - '**/*'

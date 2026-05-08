@@ -2,6 +2,9 @@ const api = window.autocharRecorder;
 
 const urlInput = document.querySelector('#urlInput');
 const openButton = document.querySelector('#openButton');
+const extensionButton = document.querySelector('#extensionButton');
+const copyExtensionConfigButton = document.querySelector('#copyExtensionConfigButton');
+const openExtensionFolderButton = document.querySelector('#openExtensionFolderButton');
 const startButton = document.querySelector('#startButton');
 const stopButton = document.querySelector('#stopButton');
 const exportButton = document.querySelector('#exportButton');
@@ -18,10 +21,14 @@ const exportPath = document.querySelector('#exportPath');
 const commandStatus = document.querySelector('#commandStatus');
 const reviewMarkdown = document.querySelector('#reviewMarkdown');
 const log = document.querySelector('#log');
+const receiverUrl = document.querySelector('#receiverUrl');
+const receiverToken = document.querySelector('#receiverToken');
+const extensionDir = document.querySelector('#extensionDir');
 
 let stopped = false;
 let lastCommandMessage = '等待操作';
 let currentReviewMarkdown = '';
+let extensionConfig;
 
 function formatDebugLog(state) {
   const lines = state.debugLog || [];
@@ -31,8 +38,16 @@ function formatDebugLog(state) {
   return lines.slice(-120).join('\n');
 }
 
+function renderExtensionConfig(info) {
+  if (!info) return;
+  extensionConfig = info;
+  receiverUrl.textContent = info.receiverUrl || '-';
+  receiverToken.textContent = info.token || '-';
+  extensionDir.textContent = info.extensionDir || '-';
+}
+
 function render(state) {
-  statusBadge.textContent = state.isRecording ? '录制中' : state.isOpen ? '浏览器已打开' : '未打开';
+  statusBadge.textContent = state.isRecording ? '录制中' : state.isOpen ? '已停止' : '未开始';
   stepCount.textContent = String(state.stepCount ?? 0);
   screenshotCount.textContent = String(state.screenshotCount ?? 0);
   lastAction.textContent = state.lastAction || '-';
@@ -41,11 +56,15 @@ function render(state) {
   reviewMarkdown.value = currentReviewMarkdown;
   log.textContent = formatDebugLog(state);
 
+  openButton.disabled = state.isRecording;
+  extensionButton.disabled = state.isRecording;
   startButton.disabled = !state.isOpen || state.isRecording;
   stopButton.disabled = !state.isRecording;
   exportButton.disabled = !stopped;
   copyReviewButton.disabled = !currentReviewMarkdown;
   saveReviewButton.disabled = !currentReviewMarkdown;
+  copyExtensionConfigButton.disabled = !extensionConfig?.receiverUrl;
+  openExtensionFolderButton.disabled = !extensionConfig?.extensionDir;
 }
 
 async function refreshState() {
@@ -64,16 +83,61 @@ async function run(action, onSuccess) {
   }
 }
 
-async function copyReviewMarkdown() {
-  if (!currentReviewMarkdown) return;
+async function copyText(value) {
+  if (!value) return;
   if (navigator.clipboard?.writeText) {
-    await navigator.clipboard.writeText(currentReviewMarkdown);
+    await navigator.clipboard.writeText(value);
   } else {
-    reviewMarkdown.focus();
-    reviewMarkdown.select();
+    const textarea = document.createElement('textarea');
+    textarea.value = value;
+    document.body.append(textarea);
+    textarea.select();
     document.execCommand('copy');
+    textarea.remove();
   }
 }
+
+async function copyReviewMarkdown() {
+  await copyText(currentReviewMarkdown);
+}
+
+function extensionConfigText() {
+  if (!extensionConfig) return '';
+  return [
+    `Receiver URL: ${extensionConfig.receiverUrl}`,
+    `Token: ${extensionConfig.token}`,
+    `Extension folder: ${extensionConfig.extensionDir}`
+  ].join('\n');
+}
+
+async function loadExtensionInfo() {
+  const info = await api.extensionInfo();
+  renderExtensionConfig(info);
+  return info;
+}
+
+extensionButton.addEventListener('click', () => run(
+  async () => {
+    const result = await api.startExtension();
+    if (result.extension) renderExtensionConfig(result.extension);
+    return result;
+  },
+  () => {
+    stopped = false;
+    currentReviewMarkdown = '';
+    return '扩展录制已开始，请在已安装扩展的 Chrome/Edge 后台页面继续操作';
+  }
+));
+
+copyExtensionConfigButton.addEventListener('click', () => run(
+  () => copyText(extensionConfigText()),
+  () => '扩展连接信息已复制'
+));
+
+openExtensionFolderButton.addEventListener('click', () => run(
+  () => api.openExtensionFolder(),
+  () => '扩展目录已打开'
+));
 
 openButton.addEventListener('click', () => run(
   () => api.open(urlInput.value),
@@ -89,7 +153,7 @@ startButton.addEventListener('click', () => run(
   () => {
     stopped = false;
     currentReviewMarkdown = '';
-    return '已开始录制';
+    return '已重新开始 Chromium 录制';
   }
 ));
 
@@ -126,14 +190,16 @@ closeButton.addEventListener('click', () => run(
   () => {
     stopped = false;
     currentReviewMarkdown = '';
-    return '浏览器已关闭';
+    return '当前录制已关闭';
   }
 ));
 
-refreshState().catch((error) => {
-  lastCommandMessage = error.message || String(error);
-  commandStatus.textContent = lastCommandMessage;
-});
+loadExtensionInfo()
+  .then(refreshState)
+  .catch((error) => {
+    lastCommandMessage = error.message || String(error);
+    commandStatus.textContent = lastCommandMessage;
+  });
 
 setInterval(() => {
   refreshState().catch(() => undefined);

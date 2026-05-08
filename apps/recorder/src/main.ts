@@ -1,8 +1,13 @@
 import path from 'node:path';
 import fs from 'node:fs/promises';
-import { app, BrowserWindow, dialog, ipcMain } from 'electron';
+import { app, BrowserWindow, dialog, ipcMain, shell } from 'electron';
 import { flowToReviewMarkdown } from '@autochar/flow-converter';
-import type { RecorderSession as RecorderSessionType } from '@autochar/recorder-core';
+import type {
+  ExtensionRecorderEvent,
+  ExtensionRecorderSession as ExtensionRecorderSessionType,
+  RecorderSession as RecorderSessionType
+} from '@autochar/recorder-core';
+import { ExtensionReceiverServer, type ExtensionReceiverInfo } from './extension-receiver';
 
 process.env.PLAYWRIGHT_BROWSERS_PATH = app.isPackaged
   ? path.join(process.resourcesPath, 'ms-playwright')
@@ -10,6 +15,10 @@ process.env.PLAYWRIGHT_BROWSERS_PATH = app.isPackaged
 
 let mainWindow: BrowserWindow | undefined;
 let session: RecorderSessionType | undefined;
+let extensionSession: ExtensionRecorderSessionType | undefined;
+let extensionReceiver: ExtensionReceiverServer | undefined;
+let extensionReceiverInfo: ExtensionReceiverInfo | undefined;
+let activeMode: 'browser' | 'extension' | undefined;
 let stopped = false;
 let lastReviewMarkdown = '';
 const remoteDebuggingPort = 9223;
@@ -43,8 +52,40 @@ async function ensureSession() {
   return session;
 }
 
+function activeSession() {
+  return activeMode === 'extension' ? extensionSession : session;
+}
+
+function recorderExtensionDir() {
+  return app.isPackaged
+    ? path.join(process.resourcesPath, 'recorder-extension')
+    : path.resolve(__dirname, '..', '..', 'recorder-extension');
+}
+
+async function ensureExtensionReceiver() {
+  if (!extensionReceiver) {
+    extensionReceiver = new ExtensionReceiverServer({
+      preferredPort: 17321,
+      onEvent: async (event) => {
+        if (!extensionSession) return;
+        await extensionSession.receiveEvent(event as ExtensionRecorderEvent);
+      }
+    });
+    extensionReceiverInfo = await extensionReceiver.start();
+  } else if (!extensionReceiverInfo) {
+    extensionReceiverInfo = extensionReceiver.info();
+  }
+  const info = extensionReceiverInfo ?? extensionReceiver.info();
+  extensionReceiverInfo = info;
+  return {
+    ...info,
+    extensionDir: recorderExtensionDir()
+  };
+}
+
 ipcMain.handle('recorder:open', async (_event, startUrl: string) => {
   const current = await ensureSession();
+  activeMode = 'browser';
   await current.open(startUrl);
   await current.startRecording();
   stopped = false;
@@ -54,6 +95,7 @@ ipcMain.handle('recorder:open', async (_event, startUrl: string) => {
 
 ipcMain.handle('recorder:start', async () => {
   const current = await ensureSession();
+  activeMode = 'browser';
   await current.startRecording();
   stopped = false;
   lastReviewMarkdown = '';
@@ -61,29 +103,31 @@ ipcMain.handle('recorder:start', async () => {
 });
 
 ipcMain.handle('recorder:stop', async () => {
-  if (!session) throw new Error('Recorder is not open.');
-  const flow = await session.stopRecording();
+  const current = activeSession();
+  if (!current) throw new Error('Recorder is not open.');
+  const flow = await current.stopRecording();
   lastReviewMarkdown = flowToReviewMarkdown(flow);
   stopped = true;
-  return { state: session.getState(), flow, reviewMarkdown: lastReviewMarkdown };
+  return { state: current.getState(), flow, reviewMarkdown: lastReviewMarkdown };
 });
 
 ipcMain.handle('recorder:export', async (_event, payload: { name: string; notes: string; reviewMarkdown?: string }) => {
-  if (!session || !stopped) throw new Error('Stop recording before export.');
+  const current = activeSession();
+  if (!current || !stopped) throw new Error('Stop recording before export.');
   const selection = await dialog.showOpenDialog(mainWindow!, {
     title: '选择 flow package 导出目录',
     properties: ['openDirectory', 'createDirectory']
   });
   if (selection.canceled || !selection.filePaths[0]) {
-    return session.getState();
+    return current.getState();
   }
-  const zipPath = await session.exportRecording({
+  const zipPath = await current.exportRecording({
     name: payload.name || 'Autochar Recording',
     notes: payload.notes || '',
     reviewMarkdown: payload.reviewMarkdown || lastReviewMarkdown,
     outputDir: selection.filePaths[0]
   });
-  return { ...session.getState(), exportPath: zipPath };
+  return { ...current.getState(), exportPath: zipPath };
 });
 
 ipcMain.handle('recorder:save-review', async (_event, payload: { name: string; markdown: string }) => {
@@ -102,7 +146,40 @@ ipcMain.handle('recorder:save-review', async (_event, payload: { name: string; m
   return { savedPath: selection.filePath };
 });
 
-ipcMain.handle('recorder:state', async () => session?.getState() ?? {
+ipcMain.handle('recorder:extension-info', async () => {
+  const receiver = await ensureExtensionReceiver();
+  return {
+    ...receiver,
+    state: extensionSession?.getState()
+  };
+});
+
+ipcMain.handle('recorder:extension-start', async () => {
+  await ensureExtensionReceiver();
+  const { ExtensionRecorderSession } = await import('@autochar/recorder-core');
+  const workDir = path.join(app.getPath('userData'), 'extension-recordings', String(Date.now()));
+  extensionSession = new ExtensionRecorderSession({
+    workDir,
+    debugLogPath: path.join(workDir, 'extension-recorder-debug.log')
+  });
+  activeMode = 'extension';
+  stopped = false;
+  lastReviewMarkdown = '';
+  await extensionSession.startRecording();
+  return {
+    ...extensionSession.getState(),
+    extension: {
+      ...(extensionReceiverInfo ?? {}),
+      extensionDir: recorderExtensionDir()
+    }
+  };
+});
+
+ipcMain.handle('recorder:open-extension-folder', async () => {
+  await shell.openPath(recorderExtensionDir());
+});
+
+ipcMain.handle('recorder:state', async () => activeSession()?.getState() ?? {
   isOpen: false,
   isRecording: false,
   stepCount: 0,
@@ -113,7 +190,10 @@ ipcMain.handle('recorder:state', async () => session?.getState() ?? {
 
 ipcMain.handle('recorder:close-browser', async () => {
   await session?.close();
+  await extensionSession?.close();
   session = undefined;
+  extensionSession = undefined;
+  activeMode = undefined;
   stopped = false;
   lastReviewMarkdown = '';
   return {
@@ -128,5 +208,9 @@ ipcMain.handle('recorder:close-browser', async () => {
 
 app.whenReady().then(createWindow);
 app.on('window-all-closed', () => {
-  session?.close().finally(() => app.quit());
+  Promise.all([
+    session?.close(),
+    extensionSession?.close(),
+    extensionReceiver?.close()
+  ]).finally(() => app.quit());
 });

@@ -10,7 +10,7 @@ body {
 }
 
 main {
-  width: min(1040px, calc(100vw - 32px));
+  width: min(1120px, calc(100vw - 32px));
   margin: 24px auto;
 }
 
@@ -37,6 +37,10 @@ h1 {
   font-size: 28px;
 }
 
+h2 {
+  font-size: 18px;
+}
+
 p,
 label,
 dt {
@@ -56,6 +60,10 @@ dt {
   border-radius: 8px;
   padding: 16px;
   margin-bottom: 14px;
+}
+
+.primary-panel {
+  border-color: #93c5fd;
 }
 
 .grid {
@@ -107,6 +115,23 @@ button:disabled {
   cursor: not-allowed;
 }
 
+button.secondary {
+  border: 1px solid #cbd5e1;
+  background: #fff;
+  color: #1f2937;
+}
+
+button.secondary:disabled {
+  background: #e2e8f0;
+  color: #64748b;
+}
+
+code {
+  font-family: Consolas, "Courier New", monospace;
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+
 dl {
   display: grid;
   grid-template-columns: 110px 1fr;
@@ -123,6 +148,7 @@ dd {
   background: #fffbeb;
   border-radius: 8px;
   padding: 12px;
+  margin-bottom: 14px;
 }
 
 pre {

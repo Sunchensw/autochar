@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8">
+    <title>Autochar Recorder</title>
+    <style>
+      body {
+        width: 340px;
+        margin: 0;
+        padding: 14px;
+        font-family: "Segoe UI", "Microsoft YaHei", sans-serif;
+        color: #1f2937;
+      }
+
+      h1 {
+        margin: 0 0 10px;
+        font-size: 18px;
+      }
+
+      label {
+        display: block;
+        margin-top: 10px;
+        color: #64748b;
+        font-size: 12px;
+      }
+
+      input[type="text"],
+      input[type="password"] {
+        width: 100%;
+        box-sizing: border-box;
+        margin-top: 4px;
+        border: 1px solid #cbd5e1;
+        border-radius: 6px;
+        padding: 8px;
+        font: inherit;
+      }
+
+      .inline {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        margin: 12px 0;
+      }
+
+      button {
+        height: 34px;
+        border: 0;
+        border-radius: 6px;
+        background: #2563eb;
+        color: #fff;
+        padding: 0 10px;
+        font-weight: 600;
+        cursor: pointer;
+      }
+
+      .secondary {
+        border: 1px solid #cbd5e1;
+        background: #fff;
+        color: #1f2937;
+      }
+
+      .row {
+        display: flex;
+        gap: 8px;
+      }
+
+      #status {
+        margin-top: 10px;
+        min-height: 18px;
+        color: #475569;
+        font-size: 12px;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Autochar Recorder</h1>
+    <label for="receiverUrl">本地接收地址</label>
+    <input id="receiverUrl" type="text" spellcheck="false">
+    <label for="token">连接令牌</label>
+    <input id="token" type="password" spellcheck="false">
+    <label class="inline">
+      <input id="enabled" type="checkbox">
+      启用录制桥接
+    </label>
+    <div class="row">
+      <button id="saveButton">保存</button>
+      <button id="testButton" class="secondary">测试连接</button>
+    </div>
+    <div id="status">等待配置</div>
+    <script src="popup.js"></script>
+  </body>
+</html>

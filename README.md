@@ -1,5 +1,21 @@
 # Autochar MVP
 
+## Chrome/Edge 扩展录制
+
+遇到京东等后台提示“未用认证软件”时，优先使用扩展录制入口，不要让 Playwright 新开 Chromium 登录后台。
+
+完整操作说明见 `docs/certified-browser-backend-manual.md`。
+
+1. 运行 `npm run recorder`。
+2. 在 Autochar Recorder 中点击“开始扩展录制”。
+3. 复制页面中的本地接收地址和连接令牌。
+4. 在 Chrome/Edge 扩展管理页启用开发者模式，加载 `apps/recorder-extension` 这个已解压扩展目录。
+5. 点击浏览器工具栏里的 Autochar Recorder 扩展图标，填入接收地址和令牌，保存并测试连接。
+6. 在用户自己的、已通过平台认证的 Chrome/Edge 后台页面正常操作。
+7. 回到 Autochar Recorder 点击“停止录制”，确认步骤后导出 `.flow.zip`。
+
+扩展只采集用户操作、页面元素元数据和可见页截图；不会导出密码、验证码、token、cookie、localStorage 或 sessionStorage。
+
 Autochar 是一个本地 Playwright 录制器和运营控制台 MVP，用于用户已获授权的电商后台自动化流程。
 
 ## 应用说明

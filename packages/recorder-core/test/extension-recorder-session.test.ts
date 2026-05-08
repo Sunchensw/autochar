@@ -1,0 +1,182 @@
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+import AdmZip from 'adm-zip';
+import { describe, expect, test } from 'vitest';
+import { validateBasicFlow } from '@autochar/shared';
+import { ExtensionRecorderSession } from '../src';
+
+const onePixelPng =
+  'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII=';
+
+function tempDir(name: string) {
+  return fs.mkdtempSync(path.join(os.tmpdir(), name));
+}
+
+describe('ExtensionRecorderSession', () => {
+  test('records the first extension action as a start step plus interaction step', async () => {
+    const workDir = tempDir('autochar-extension-session-');
+    const session = new ExtensionRecorderSession({ workDir });
+
+    await session.startRecording();
+    await session.receiveEvent({
+      type: 'click',
+      label: 'Search',
+      element: { tagName: 'BUTTON', role: 'button', text: 'Search', id: 'searchButton' },
+      url: 'https://shop.jd.com/admin/products',
+      title: 'JD Products',
+      timestamp: '2026-05-08T10:00:00.000Z',
+      screenshotDataUrl: onePixelPng,
+      viewport: { width: 1440, height: 900 }
+    });
+
+    const flow = await session.stopRecording();
+    expect(flow.startUrl).toBe('https://shop.jd.com/admin/products');
+    expect(flow.steps).toHaveLength(2);
+    expect(flow.steps[0]).toMatchObject({
+      id: 'step-001',
+      type: 'goto',
+      screenshot: 'screenshots/step-001-start.png'
+    });
+    expect(flow.steps[1]).toMatchObject({
+      id: 'step-002',
+      type: 'click',
+      label: 'Search',
+      screenshot: 'screenshots/step-002-click.png',
+      selectors: {
+        primary: { kind: 'role', value: 'button', role: 'button', name: 'Search' }
+      }
+    });
+    expect(fs.existsSync(path.join(workDir, 'screenshots', 'step-001-start.png'))).toBe(true);
+    expect(fs.existsSync(path.join(workDir, 'screenshots', 'step-002-click.png'))).toBe(true);
+    expect(validateBasicFlow({ flow, packageDir: workDir }).ok).toBe(true);
+    expect(session.getState()).toMatchObject({
+      isOpen: true,
+      isRecording: false,
+      stepCount: 2,
+      screenshotCount: 2,
+      lastAction: 'click'
+    });
+  });
+
+  test('masks sensitive extension fill values before storing steps', async () => {
+    const workDir = tempDir('autochar-extension-sensitive-');
+    const session = new ExtensionRecorderSession({ workDir });
+
+    await session.startRecording();
+    await session.receiveEvent({
+      type: 'fill',
+      label: 'Password',
+      value: 'super-secret-password',
+      element: { tagName: 'INPUT', type: 'password', name: 'password', label: 'Password' },
+      url: 'https://shop.jd.com/login',
+      title: 'Login',
+      timestamp: '2026-05-08T10:01:00.000Z',
+      screenshotDataUrl: onePixelPng
+    });
+
+    const flow = await session.stopRecording();
+    expect(flow.steps[1]).toMatchObject({
+      type: 'fill',
+      value: '************',
+      valuePolicy: 'masked',
+      sensitive: true
+    });
+  });
+
+  test('does not mark non-sensitive asterisk values as masked', async () => {
+    const workDir = tempDir('autochar-extension-asterisk-');
+    const session = new ExtensionRecorderSession({ workDir });
+
+    await session.startRecording();
+    await session.receiveEvent({
+      type: 'fill',
+      label: 'Product title',
+      value: '2* pack',
+      element: { tagName: 'INPUT', name: 'title', placeholder: 'Product title' },
+      url: 'https://shop.jd.com/admin/products/123/edit',
+      title: 'Edit Product',
+      timestamp: '2026-05-08T10:01:30.000Z',
+      screenshotDataUrl: onePixelPng
+    });
+
+    const flow = await session.stopRecording();
+    expect(flow.steps[1]).toMatchObject({
+      type: 'fill',
+      value: '2* pack',
+      valuePolicy: 'plain',
+      sensitive: false
+    });
+  });
+
+  test('records extension navigation events once per page state', async () => {
+    const workDir = tempDir('autochar-extension-navigation-');
+    const session = new ExtensionRecorderSession({ workDir });
+
+    await session.startRecording();
+    await session.receiveEvent({
+      type: 'navigation',
+      label: 'Page loaded',
+      element: { tagName: 'HTML' },
+      url: 'https://shop.jd.com/admin/products',
+      title: 'Products',
+      timestamp: '2026-05-08T10:02:00.000Z',
+      screenshotDataUrl: onePixelPng
+    });
+    await session.receiveEvent({
+      type: 'navigation',
+      label: 'Page loaded',
+      element: { tagName: 'HTML' },
+      url: 'https://shop.jd.com/admin/products',
+      title: 'Products',
+      timestamp: '2026-05-08T10:02:01.000Z',
+      screenshotDataUrl: onePixelPng
+    });
+    await session.receiveEvent({
+      type: 'navigation',
+      label: 'Page changed',
+      element: { tagName: 'HTML' },
+      url: 'https://shop.jd.com/admin/products/123/edit',
+      title: 'Edit Product',
+      timestamp: '2026-05-08T10:02:02.000Z',
+      screenshotDataUrl: onePixelPng
+    });
+
+    const flow = await session.stopRecording();
+    expect(flow.steps.map((step) => step.type)).toEqual(['goto', 'navigation']);
+    expect(flow.steps[1]).toMatchObject({
+      id: 'step-002',
+      type: 'navigation',
+      value: 'https://shop.jd.com/admin/products/123/edit'
+    });
+  });
+
+  test('exports extension recordings as validated flow packages', async () => {
+    const workDir = tempDir('autochar-extension-export-work-');
+    const outputDir = tempDir('autochar-extension-export-out-');
+    const session = new ExtensionRecorderSession({ workDir });
+
+    await session.startRecording();
+    await session.receiveEvent({
+      type: 'click',
+      label: 'Search',
+      element: { tagName: 'BUTTON', role: 'button', text: 'Search' },
+      url: 'https://shop.jd.com/admin/products',
+      title: 'JD Products',
+      timestamp: '2026-05-08T10:03:00.000Z',
+      screenshotDataUrl: onePixelPng
+    });
+    await session.stopRecording();
+
+    const zipPath = await session.exportRecording({
+      name: 'JD extension recording',
+      notes: 'Recorded from user browser.',
+      outputDir
+    });
+
+    expect(fs.existsSync(zipPath)).toBe(true);
+    const zip = new AdmZip(zipPath);
+    expect(zip.getEntry('flow.json')?.getData().toString('utf8')).toContain('JD extension recording');
+    expect(zip.getEntry('metadata.json')?.getData().toString('utf8')).toContain('User browser extension');
+  });
+});
