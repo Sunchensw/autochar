@@ -8,10 +8,12 @@ import {
   type FlowMetadata,
   type FlowPackage,
   type FlowStep,
+  type PageContextSnapshot,
   type SelectorSet
 } from '@autochar/shared';
 import { normalizeCapturedAction, type CapturedAction } from './action-capture';
-import { writeFlowPackage } from './export-flow';
+import { isAllowedRecordingUrl } from './page-context';
+import { buildOperationMarkdown, writeOperationMarkdown } from './operation-markdown';
 import type { ExportRecordingOptions, RecordingState } from './recorder-session';
 
 export interface ExtensionRecorderSessionOptions {
@@ -30,6 +32,7 @@ export interface ExtensionRecorderEvent {
   screenshotDataUrl?: string;
   framePath?: string[];
   viewport?: { width: number; height: number };
+  pageContext?: PageContextSnapshot;
 }
 
 const placeholderPngBase64 =
@@ -144,6 +147,10 @@ export class ExtensionRecorderSession {
       this.appendDebug(`ignored extension ${raw.type}: missing page metadata`);
       return;
     }
+    if (!isAllowedRecordingUrl(raw.url)) {
+      this.appendDebug(`ignored extension ${raw.type}: URL outside safety boundary ${raw.url}`);
+      return;
+    }
     if (raw.type === 'debug') {
       this.appendDebug(`extension debug: ${raw.label || '-'}`);
       return;
@@ -170,20 +177,15 @@ export class ExtensionRecorderSession {
   async exportRecording(options: ExportRecordingOptions): Promise<string> {
     this.flowName = options.name;
     const flow = this.buildFlow();
-    const debugNotes = this.stateValue.debugLog.length
-      ? ['Extension recorder debug log:', ...this.stateValue.debugLog].join('\n')
-      : '';
-    const zipPath = await writeFlowPackage({
+    const documentPath = await writeOperationMarkdown({
       flow,
       metadata: this.buildMetadata(),
-      notes: [options.notes, ...this.stateValue.notes, debugNotes].filter(Boolean).join('\n'),
-      reviewMarkdown: options.reviewMarkdown,
-      screenshotsDir: this.screenshotsDir,
+      notes: this.exportNotes(options.notes),
       outputDir: options.outputDir,
-      packageName: options.name
+      documentName: options.name
     });
-    this.stateValue.exportPath = zipPath;
-    return zipPath;
+    this.stateValue.exportPath = documentPath;
+    return documentPath;
   }
 
   async close(): Promise<void> {
@@ -209,6 +211,7 @@ export class ExtensionRecorderSession {
       value: raw.url,
       valuePolicy: 'notStored',
       sensitive: false,
+      pageContext: raw.pageContext,
       screenshot,
       screenshotKind: 'viewport',
       riskLevel: 'low',
@@ -243,6 +246,7 @@ export class ExtensionRecorderSession {
       sensitive,
       selectors: selectorFromElement(action.element),
       element: action.element,
+      pageContext: raw.pageContext,
       screenshot,
       screenshotKind: 'viewport',
       riskLevel: highRisk ? 'high' : 'low',
@@ -270,6 +274,7 @@ export class ExtensionRecorderSession {
       title: raw.title || '',
       valuePolicy: 'notStored',
       sensitive: false,
+      pageContext: raw.pageContext,
       screenshot,
       screenshotKind: 'viewport',
       riskLevel: 'low',
@@ -314,6 +319,25 @@ export class ExtensionRecorderSession {
       containsPassword: this.steps.some((step) => step.sensitive),
       containsCookies: false
     };
+  }
+
+  private exportNotes(notes: string): string {
+    const debugNotes = this.stateValue.debugLog.length
+      ? ['Extension recorder debug log:', ...this.stateValue.debugLog].join('\n')
+      : '';
+    return [notes, ...this.stateValue.notes, debugNotes].filter(Boolean).join('\n');
+  }
+
+  previewOperationMarkdown(options: { name?: string; notes?: string } = {}): string {
+    const flow = {
+      ...this.buildFlow(),
+      name: options.name || this.flowName
+    };
+    return buildOperationMarkdown({
+      flow,
+      metadata: this.buildMetadata(),
+      notes: this.exportNotes(options.notes || '')
+    });
   }
 
   private appendDebug(message: string) {

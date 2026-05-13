@@ -18,6 +18,49 @@ export const selectorSetSchema = z.object({
   fallbacks: z.array(selectorCandidateSchema).default([])
 });
 
+export const pageContextElementSchema = z
+  .object({
+    tagName: z.string().optional(),
+    type: z.string().optional(),
+    name: z.string().optional(),
+    id: z.string().optional(),
+    label: z.string().optional(),
+    placeholder: z.string().optional(),
+    role: z.string().optional(),
+    text: z.string().optional(),
+    href: z.string().optional(),
+    selector: z.string().optional(),
+    nearbyText: z.string().optional(),
+    rowText: z.string().optional(),
+    area: z.string().optional()
+  })
+  .passthrough();
+
+export const pageContextFormSchema = z
+  .object({
+    name: z.string().optional(),
+    id: z.string().optional(),
+    label: z.string().optional(),
+    fields: z.array(pageContextElementSchema).default([])
+  })
+  .passthrough();
+
+export const pageContextTableSchema = z
+  .object({
+    caption: z.string().optional(),
+    headers: z.array(z.string()).default([]),
+    rows: z.array(z.array(z.string())).default([])
+  })
+  .passthrough();
+
+export const pageContextSnapshotSchema = z.object({
+  summaryText: z.string().optional(),
+  interactables: z.array(pageContextElementSchema).default([]),
+  forms: z.array(pageContextFormSchema).default([]),
+  tables: z.array(pageContextTableSchema).default([]),
+  warnings: z.array(z.string()).default([])
+});
+
 export const flowStepSchema = z.object({
   id: z.string().min(1),
   order: z.number().int().positive(),
@@ -41,6 +84,7 @@ export const flowStepSchema = z.object({
   sensitive: z.boolean().default(false),
   selectors: selectorSetSchema.optional(),
   element: z.record(z.string(), z.string().optional()).optional(),
+  pageContext: pageContextSnapshotSchema.optional(),
   networkHints: z.array(z.string()).optional(),
   assertions: z
     .array(
@@ -82,6 +126,10 @@ export const metadataSchema = z.object({
 
 export type SelectorCandidate = z.infer<typeof selectorCandidateSchema>;
 export type SelectorSet = z.infer<typeof selectorSetSchema>;
+export type PageContextElement = z.infer<typeof pageContextElementSchema>;
+export type PageContextForm = z.infer<typeof pageContextFormSchema>;
+export type PageContextTable = z.infer<typeof pageContextTableSchema>;
+export type PageContextSnapshot = z.infer<typeof pageContextSnapshotSchema>;
 export type FlowStep = z.infer<typeof flowStepSchema>;
 export type FlowPackage = z.infer<typeof flowPackageSchema>;
 export type FlowMetadata = z.infer<typeof metadataSchema>;

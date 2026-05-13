@@ -5,7 +5,6 @@ directories:
   output: ../../release/user
 files:
   - dist/**
-  - src/ui/**
   - package.json
 asar: true
 npmRebuild: false

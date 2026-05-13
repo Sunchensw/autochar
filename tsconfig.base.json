@@ -21,12 +21,6 @@
       ],
       "@autochar/recorder-core": [
         "packages/recorder-core/src/index.ts"
-      ],
-      "@autochar/flow-converter": [
-        "packages/flow-converter/src/index.ts"
-      ],
-      "@autochar/batch-runner": [
-        "apps/batch-runner/src/index.ts"
       ]
     },
     "types": [

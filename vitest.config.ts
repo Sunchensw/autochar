@@ -11,9 +11,7 @@ export default defineConfig({
   resolve: {
     alias: {
       '@autochar/shared': fromRoot('./packages/shared/src/index.ts'),
-      '@autochar/recorder-core': fromRoot('./packages/recorder-core/src/index.ts'),
-      '@autochar/flow-converter': fromRoot('./packages/flow-converter/src/index.ts'),
-      '@autochar/batch-runner': fromRoot('./apps/batch-runner/src/index.ts')
+      '@autochar/recorder-core': fromRoot('./packages/recorder-core/src/index.ts')
     }
   }
 });

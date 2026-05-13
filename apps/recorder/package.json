@@ -5,21 +5,29 @@
   "productName": "Autochar Recorder",
   "main": "dist/main.js",
   "scripts": {
-    "build": "tsup src/main.ts src/preload.ts --format cjs --platform node --external electron --clean --out-dir dist",
+    "build:main": "tsup src/main.ts src/preload.ts --format cjs --platform node --external electron --clean --out-dir dist",
+    "build:renderer": "vite build",
+    "build": "npm run build:main && npm run build:renderer",
     "start": "npm run build && electron .",
     "dist:setup": "electron-builder --config electron-builder.yml --win nsis",
     "dist:portable": "electron-builder --config electron-builder.yml --win portable",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
-    "@autochar/flow-converter": "file:../../packages/flow-converter",
     "@autochar/recorder-core": "file:../../packages/recorder-core",
     "@autochar/shared": "file:../../packages/shared",
-    "adm-zip": "^0.5.16",
+    "@fluentui/react-components": "^9.68.0",
+    "@fluentui/react-icons": "^2.0.308",
     "playwright": "^1.45.3"
   },
   "devDependencies": {
+    "@types/react": "^18.3.3",
+    "@types/react-dom": "^18.3.0",
+    "@vitejs/plugin-react": "^4.3.1",
     "electron": "^31.3.1",
-    "electron-builder": "^24.13.3"
+    "electron-builder": "^24.13.3",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "vite": "^5.4.0"
   }
 }

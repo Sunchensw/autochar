@@ -1,7 +1,6 @@
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import AdmZip from 'adm-zip';
 import { describe, expect, test } from 'vitest';
 import { validateBasicFlow } from '@autochar/shared';
 import { ExtensionRecorderSession } from '../src';
@@ -151,7 +150,7 @@ describe('ExtensionRecorderSession', () => {
     });
   });
 
-  test('exports extension recordings as validated flow packages', async () => {
+  test('exports extension recordings as a single AI operation Markdown document', async () => {
     const workDir = tempDir('autochar-extension-export-work-');
     const outputDir = tempDir('autochar-extension-export-out-');
     const session = new ExtensionRecorderSession({ workDir });
@@ -168,15 +167,18 @@ describe('ExtensionRecorderSession', () => {
     });
     await session.stopRecording();
 
-    const zipPath = await session.exportRecording({
+    const documentPath = await session.exportRecording({
       name: 'JD extension recording',
       notes: 'Recorded from user browser.',
       outputDir
     });
 
-    expect(fs.existsSync(zipPath)).toBe(true);
-    const zip = new AdmZip(zipPath);
-    expect(zip.getEntry('flow.json')?.getData().toString('utf8')).toContain('JD extension recording');
-    expect(zip.getEntry('metadata.json')?.getData().toString('utf8')).toContain('User browser extension');
+    expect(fs.existsSync(documentPath)).toBe(true);
+    expect(documentPath.endsWith('.autochar.md')).toBe(true);
+    expect(fs.readdirSync(outputDir)).toEqual(['JD-extension-recording.autochar.md']);
+    const markdown = fs.readFileSync(documentPath, 'utf8');
+    expect(markdown).toContain('# Autochar AI Operation Document');
+    expect(markdown).toContain('User browser extension');
+    expect(markdown).toContain('JD extension recording');
   });
 });

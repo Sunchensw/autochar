@@ -1,7 +1,5 @@
 import path from 'node:path';
-import fs from 'node:fs/promises';
 import { app, BrowserWindow, dialog, ipcMain, shell } from 'electron';
-import { flowToReviewMarkdown } from '@autochar/flow-converter';
 import type {
   ExtensionRecorderEvent,
   ExtensionRecorderSession as ExtensionRecorderSessionType,
@@ -20,23 +18,24 @@ let extensionReceiver: ExtensionReceiverServer | undefined;
 let extensionReceiverInfo: ExtensionReceiverInfo | undefined;
 let activeMode: 'browser' | 'extension' | undefined;
 let stopped = false;
-let lastReviewMarkdown = '';
+let lastOperationMarkdown = '';
 const remoteDebuggingPort = 9223;
 
 function createWindow() {
   mainWindow = new BrowserWindow({
-    width: 980,
-    height: 720,
-    minWidth: 860,
+    width: 1100,
+    height: 760,
+    minWidth: 920,
     minHeight: 640,
     title: 'Autochar Recorder',
+    backgroundColor: '#f7f7f7',
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
       nodeIntegration: false
     }
   });
-  mainWindow.loadFile(path.join(__dirname, '..', 'src', 'ui', 'index.html'));
+  mainWindow.loadFile(path.join(__dirname, 'renderer', 'index.html'));
 }
 
 async function ensureSession() {
@@ -89,7 +88,7 @@ ipcMain.handle('recorder:open', async (_event, startUrl: string) => {
   await current.open(startUrl);
   await current.startRecording();
   stopped = false;
-  lastReviewMarkdown = '';
+  lastOperationMarkdown = '';
   return current.getState();
 });
 
@@ -98,7 +97,7 @@ ipcMain.handle('recorder:start', async () => {
   activeMode = 'browser';
   await current.startRecording();
   stopped = false;
-  lastReviewMarkdown = '';
+  lastOperationMarkdown = '';
   return current.getState();
 });
 
@@ -106,44 +105,31 @@ ipcMain.handle('recorder:stop', async () => {
   const current = activeSession();
   if (!current) throw new Error('Recorder is not open.');
   const flow = await current.stopRecording();
-  lastReviewMarkdown = flowToReviewMarkdown(flow);
+  lastOperationMarkdown = current.previewOperationMarkdown();
   stopped = true;
-  return { state: current.getState(), flow, reviewMarkdown: lastReviewMarkdown };
+  return { state: current.getState(), flow, operationMarkdown: lastOperationMarkdown };
 });
 
-ipcMain.handle('recorder:export', async (_event, payload: { name: string; notes: string; reviewMarkdown?: string }) => {
+ipcMain.handle('recorder:export', async (_event, payload: { name: string; notes: string }) => {
   const current = activeSession();
   if (!current || !stopped) throw new Error('Stop recording before export.');
   const selection = await dialog.showOpenDialog(mainWindow!, {
-    title: '选择 flow package 导出目录',
+    title: '选择 AI 操作文档导出目录',
     properties: ['openDirectory', 'createDirectory']
   });
   if (selection.canceled || !selection.filePaths[0]) {
     return current.getState();
   }
-  const zipPath = await current.exportRecording({
+  const documentPath = await current.exportRecording({
     name: payload.name || 'Autochar Recording',
     notes: payload.notes || '',
-    reviewMarkdown: payload.reviewMarkdown || lastReviewMarkdown,
     outputDir: selection.filePaths[0]
   });
-  return { ...current.getState(), exportPath: zipPath };
-});
-
-ipcMain.handle('recorder:save-review', async (_event, payload: { name: string; markdown: string }) => {
-  const markdown = payload.markdown || lastReviewMarkdown;
-  if (!markdown.trim()) throw new Error('No review Markdown is available.');
-  const safeName = (payload.name || 'autochar-review').replace(/[^\w.-]+/g, '-');
-  const selection = await dialog.showSaveDialog(mainWindow!, {
-    title: '保存流程审核 Markdown',
-    defaultPath: `${safeName}.md`,
-    filters: [{ name: 'Markdown', extensions: ['md'] }]
+  lastOperationMarkdown = current.previewOperationMarkdown({
+    name: payload.name || 'Autochar Recording',
+    notes: payload.notes || ''
   });
-  if (selection.canceled || !selection.filePath) {
-    return { savedPath: '' };
-  }
-  await fs.writeFile(selection.filePath, markdown, 'utf8');
-  return { savedPath: selection.filePath };
+  return { ...current.getState(), exportPath: documentPath, operationMarkdown: lastOperationMarkdown };
 });
 
 ipcMain.handle('recorder:extension-info', async () => {
@@ -164,7 +150,7 @@ ipcMain.handle('recorder:extension-start', async () => {
   });
   activeMode = 'extension';
   stopped = false;
-  lastReviewMarkdown = '';
+  lastOperationMarkdown = '';
   await extensionSession.startRecording();
   return {
     ...extensionSession.getState(),
@@ -195,7 +181,7 @@ ipcMain.handle('recorder:close-browser', async () => {
   extensionSession = undefined;
   activeMode = undefined;
   stopped = false;
-  lastReviewMarkdown = '';
+  lastOperationMarkdown = '';
   return {
     isOpen: false,
     isRecording: false,

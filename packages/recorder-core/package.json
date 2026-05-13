@@ -16,7 +16,6 @@
   },
   "dependencies": {
     "@autochar/shared": "file:../shared",
-    "adm-zip": "^0.5.16",
     "playwright": "^1.45.3"
   }
 }

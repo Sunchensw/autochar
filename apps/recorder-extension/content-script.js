@@ -104,6 +104,97 @@
     text: text(el),
     testId: attr(el, 'data-testid') || attr(el, 'data-test') || attr(el, 'data-qa')
   });
+  const cleanContextText = (value, max = 320) => {
+    const raw = String(value || '').replace(/\s+/g, ' ').trim();
+    if (!raw) return '';
+    const redacted = raw
+      .replace(/\b(cookie|token|authorization)\s*[:=]\s*[^\s;]+/gi, '[sensitive-redacted]')
+      .replace(/(localStorage|sessionStorage)/gi, '[browser-storage]');
+    return redacted.length > max ? `${redacted.slice(0, max - 1)}…` : redacted;
+  };
+  const cssSelector = (el) => {
+    const tag = (el.tagName || 'element').toLowerCase();
+    const id = attr(el, 'id');
+    const name = attr(el, 'name');
+    const testId = attr(el, 'data-testid') || attr(el, 'data-test') || attr(el, 'data-qa');
+    const esc = (value) => window.CSS && CSS.escape ? CSS.escape(value) : String(value).replace(/["\\]/g, '\\$&');
+    if (testId) return `[data-testid="${esc(testId)}"]`;
+    if (id) return `${tag}#${esc(id)}`;
+    if (name) return `${tag}[name="${esc(name)}"]`;
+    return tag;
+  };
+  const elementContext = (el) => {
+    const label = labelText(el);
+    const type = attr(el, 'type');
+    const sensitive = /(password|passwd|pwd|secret|token|cookie|authorization|验证码|密码|口令|令牌)/i
+      .test([type, label, attr(el, 'name'), attr(el, 'id')].join(' '));
+    const area = el.closest && el.closest('[aria-label], section, main, aside, nav, form, dialog, [role="dialog"], [role="main"], [role="region"]');
+    const row = el.closest && el.closest('tr');
+    const nearby = (el.closest && (el.closest('tr') || el.closest('label') || el.closest('form') || el.parentElement)) || el;
+    return Object.fromEntries(Object.entries({
+      tagName: (el.tagName || '').toUpperCase(),
+      type,
+      name: cleanContextText(attr(el, 'name'), 120),
+      id: cleanContextText(attr(el, 'id'), 120),
+      label: cleanContextText(label, 160),
+      placeholder: cleanContextText(attr(el, 'placeholder'), 160),
+      role: roleOf(el),
+      text: sensitive ? '' : cleanContextText(text(el), 220),
+      href: cleanContextText(attr(el, 'href'), 260),
+      selector: cssSelector(el),
+      nearbyText: cleanContextText(text(nearby), 280),
+      rowText: cleanContextText(text(row), 280),
+      area: cleanContextText(labelText(area) || attr(area, 'aria-label') || attr(area, 'role') || (area && area.tagName), 120)
+    }).filter(([, value]) => value));
+  };
+  const pageContext = () => {
+    const interactableSelector = [
+      'button',
+      'a[href]',
+      'input:not([type="hidden"])',
+      'textarea',
+      'select',
+      'summary',
+      '[role]',
+      '[onclick]',
+      '[tabindex]:not([tabindex="-1"])',
+      '[aria-haspopup]',
+      '[aria-expanded]',
+      '[aria-controls]',
+      '[data-testid]',
+      '[data-test]',
+      '[data-qa]'
+    ].join(',');
+    const fieldSelector = 'input:not([type="hidden"]), textarea, select, [contenteditable], [role="textbox"]';
+    const visible = (el) => {
+      if (!el || !el.getBoundingClientRect) return false;
+      const rect = el.getBoundingClientRect();
+      return rect.width > 0 && rect.height > 0;
+    };
+    const bodyText = cleanContextText(text(document.body || document.documentElement), 4000);
+    const warnings = [];
+    if (/(captcha|验证码|风控|二次验证|mfa|otp|登录失效|login expired|risk control|human verification)/i.test(bodyText)) {
+      warnings.push('页面出现验证码、风控、二次验证或登录失效提示，需要人工介入。');
+    }
+    return {
+      summaryText: bodyText,
+      interactables: Array.from(document.querySelectorAll(interactableSelector)).filter(visible).slice(0, 120).map(elementContext),
+      forms: Array.from(document.querySelectorAll('form')).filter(visible).slice(0, 20).map((form) => ({
+        name: cleanContextText(attr(form, 'name'), 120),
+        id: cleanContextText(attr(form, 'id'), 120),
+        label: cleanContextText(labelText(form) || attr(form, 'aria-label'), 160),
+        fields: Array.from(form.querySelectorAll(fieldSelector)).filter(visible).slice(0, 40).map(elementContext)
+      })),
+      tables: Array.from(document.querySelectorAll('table')).filter(visible).slice(0, 10).map((table) => ({
+        caption: cleanContextText(text(table.querySelector('caption')), 160),
+        headers: Array.from(table.querySelectorAll('thead th, tr:first-child th')).slice(0, 8).map((cell) => cleanContextText(text(cell), 120)).filter(Boolean),
+        rows: Array.from(table.querySelectorAll('tbody tr, tr')).slice(0, 5).map((row) =>
+          Array.from(row.querySelectorAll('th,td')).slice(0, 8).map((cell) => cleanContextText(text(cell), 160)).filter(Boolean)
+        ).filter((row) => row.length)
+      })),
+      warnings
+    };
+  };
   const send = (payload) => {
     chrome.runtime.sendMessage({
       kind: 'autochar-event',
@@ -115,7 +206,8 @@
         viewport: {
           width: Math.round(window.innerWidth),
           height: Math.round(window.innerHeight)
-        }
+        },
+        pageContext: pageContext()
       }
     }).catch(() => undefined);
   };

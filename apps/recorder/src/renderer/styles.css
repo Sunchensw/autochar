@@ -1,0 +1,258 @@
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+}
+
+body {
+  font-family: "Segoe UI", system-ui, sans-serif;
+}
+
+.appShell {
+  display: grid;
+  grid-template-columns: 248px minmax(0, 1fr);
+  width: 100vw;
+  height: 100vh;
+  background: var(--colorNeutralBackground2);
+  color: var(--colorNeutralForeground1);
+}
+
+.sidebar {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  gap: 16px;
+  min-width: 0;
+  padding: 18px 14px;
+  border-right: 1px solid var(--colorNeutralStroke2);
+  background: color-mix(in srgb, var(--colorNeutralBackground1) 86%, transparent);
+}
+
+.brand {
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.brandMark {
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 8px;
+  color: white;
+  font-weight: 700;
+  background: linear-gradient(135deg, #2563eb, #0f766e);
+}
+
+.brand div:last-child {
+  display: grid;
+  min-width: 0;
+}
+
+.navList {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+  overflow: auto;
+}
+
+.navButton {
+  justify-content: flex-start;
+  width: 100%;
+  min-height: 40px;
+}
+
+.settingsPanel {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+}
+
+.settingsTitle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.mainPane {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  min-width: 0;
+  min-height: 0;
+}
+
+.topBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  min-width: 0;
+  padding: 22px 28px 16px;
+  border-bottom: 1px solid var(--colorNeutralStroke2);
+  background: var(--colorNeutralBackground1);
+}
+
+.topBar > div:first-child {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.statusCluster,
+.buttonRow {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.contentPane {
+  min-width: 0;
+  min-height: 0;
+  padding: 22px 28px 28px;
+  overflow: auto;
+}
+
+.dashboardGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 16px;
+  align-items: stretch;
+}
+
+.dashCard,
+.contentStack > .fui-Card,
+.logsCard {
+  min-width: 0;
+}
+
+.metricGrid,
+.infoGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 12px;
+}
+
+.metric {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+  padding: 10px 12px;
+  border: 1px solid var(--colorNeutralStroke2);
+  border-radius: 8px;
+  background: var(--colorNeutralBackground2);
+}
+
+.metric span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.contentStack {
+  display: grid;
+  gap: 16px;
+  min-width: 0;
+}
+
+.formGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(220px, 1fr));
+  gap: 14px;
+  min-width: 0;
+}
+
+.fieldWide {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+  grid-column: 1 / -1;
+}
+
+.documentGrid {
+  display: grid;
+  grid-template-columns: minmax(260px, 340px) minmax(0, 1fr);
+  gap: 16px;
+  min-width: 0;
+  min-height: 0;
+  height: 100%;
+}
+
+.documentControls {
+  align-content: start;
+  min-width: 0;
+}
+
+.previewCard,
+.logsCard {
+  min-width: 0;
+  min-height: 0;
+}
+
+.markdownPreview,
+.logPreview {
+  width: 100%;
+  height: 100%;
+  min-height: 420px;
+}
+
+.markdownPreview textarea,
+.logPreview textarea {
+  font-family: "Cascadia Mono", Consolas, monospace;
+  line-height: 1.55;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.pathText {
+  display: block;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.compactList {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding-left: 18px;
+}
+
+.errorBanner {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin: 14px 28px 0;
+  padding: 10px 12px;
+  border: 1px solid var(--colorPaletteRedBorder2);
+  border-radius: 8px;
+  background: var(--colorPaletteRedBackground1);
+  color: var(--colorPaletteRedForeground1);
+}
+
+@media (max-width: 860px) {
+  .appShell {
+    grid-template-columns: 206px minmax(0, 1fr);
+  }
+
+  .topBar {
+    padding: 18px 20px 14px;
+  }
+
+  .contentPane {
+    padding: 18px 20px 22px;
+  }
+
+  .formGrid,
+  .documentGrid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

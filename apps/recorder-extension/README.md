@@ -1,13 +1,16 @@
-# Autochar Recorder Bridge
+# Autochar Recorder Extension
 
-这是 Autochar Recorder 的 Chrome/Edge 扩展录制入口。它让用户在自己已经通过平台认证的浏览器里操作后台，并把用户动作发送到本机 Autochar Recorder。
+该扩展用于在用户自己的 Chrome 或 Edge 中录制已授权后台页面操作，并把事件发送到 Autochar Recorder 本地接收服务。
 
-## 使用
+## 使用步骤
 
-1. 打开 Autochar Recorder，点击“开始扩展录制”。
-2. 在 Recorder 页面复制“本地接收地址”和“连接令牌”。
-3. 在 Chrome/Edge 打开扩展管理页，启用开发者模式，选择“加载已解压的扩展程序”，选择本目录。
-4. 点击浏览器工具栏里的 Autochar Recorder 扩展图标，填入接收地址和令牌，点击“保存”或“测试连接”。
-5. 在已授权的后台页面正常操作，完成后回到 Autochar Recorder 点击“停止录制”和“导出 .flow.zip”。
+1. 在 Autochar Recorder 中进入“扩展录制”。
+2. 点击“获取扩展连接信息”。
+3. 点击“打开扩展目录”。
+4. 在浏览器扩展管理页开启开发者模式，加载该目录。
+5. 在扩展弹窗中填写 Recorder 显示的 Receiver 和 Token。
+6. 点击连接测试。
+7. 回到 Recorder 点击“开始扩展录制”。
+8. 用户完成页面操作后点击“停止录制”，再导出 `.autochar.md`。
 
-扩展不会读取或导出 cookie、localStorage、sessionStorage、密码或验证码。密码类字段会在 Autochar Recorder 侧做脱敏存储。
+扩展不会读取或导出浏览器存储。页面中出现验证码、风控或登录失效时，Recorder 会在 AI 文档中标记为人工介入。

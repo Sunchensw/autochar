@@ -17,6 +17,7 @@ import {
   type FlowMetadata,
   type FlowPackage,
   type FlowStep,
+  type PageContextSnapshot,
   type SelectorSet
 } from '@autochar/shared';
 import { normalizeCapturedAction, buildCaptureScript, type CapturedAction } from './action-capture';
@@ -25,7 +26,8 @@ import {
   shouldCapturePageStateScreenshot,
   type PageScreenshotState
 } from './screenshot';
-import { writeFlowPackage } from './export-flow';
+import { capturePageContextFromPage, isAllowedRecordingUrl } from './page-context';
+import { buildOperationMarkdown, writeOperationMarkdown } from './operation-markdown';
 
 export interface RecorderSessionOptions {
   workDir?: string;
@@ -52,7 +54,6 @@ export interface ExportRecordingOptions {
   name: string;
   notes: string;
   outputDir: string;
-  reviewMarkdown?: string;
 }
 
 function stepId(order: number) {
@@ -141,6 +142,9 @@ export class RecorderSession {
   }
 
   async open(startUrl: string): Promise<void> {
+    if (!isAllowedRecordingUrl(startUrl)) {
+      throw new Error('Autochar Recorder only accepts http, https, or raw URLs.');
+    }
     this.startUrl = startUrl;
     await fs.mkdir(this.screenshotsDir, { recursive: true });
     const headless = this.options.headless ?? false;
@@ -353,6 +357,10 @@ export class RecorderSession {
     if (!this.stateValue.isRecording) return;
     const url = page.url();
     if (!url || url === 'about:blank') return;
+    if (!isAllowedRecordingUrl(url)) {
+      this.appendDebug(`ignored navigation outside safety boundary: ${url}`);
+      return;
+    }
     const title = await page.title().catch(() => '');
     const key = `${url}|${title}|${this.navigationRevision}`;
     if (this.lastNavigationKeys.get(page) === key) return;
@@ -378,6 +386,7 @@ export class RecorderSession {
       value: url,
       valuePolicy: 'notStored',
       sensitive: false,
+      pageContext: await this.capturePageContext(page),
       screenshot: screenshotRef,
       screenshotKind: 'viewport',
       riskLevel: 'low',
@@ -412,6 +421,7 @@ export class RecorderSession {
       title: await this.page.title(),
       valuePolicy: 'notStored',
       sensitive: false,
+      pageContext: await this.capturePageContext(this.page),
       screenshot: screenshotRef,
       screenshotKind: 'viewport',
       riskLevel: 'low',
@@ -459,6 +469,10 @@ export class RecorderSession {
 
   private async recordAction(page: Page | undefined, action: CapturedAction, framePath: string[] = []): Promise<void> {
     if (!page) return;
+    if (!isAllowedRecordingUrl(action.url)) {
+      this.appendDebug(`ignored action outside safety boundary: ${action.url}`);
+      return;
+    }
     this.page = page;
     const order = this.steps.length + 1;
     const id = stepId(order);
@@ -486,6 +500,7 @@ export class RecorderSession {
       sensitive,
       selectors: selectorFromElement(action.element),
       element: action.element,
+      pageContext: await this.capturePageContext(page),
       screenshot: screenshotRef,
       screenshotKind: 'viewport',
       riskLevel: highRisk ? 'high' : 'low',
@@ -535,23 +550,46 @@ export class RecorderSession {
     };
   }
 
-  async exportRecording(options: ExportRecordingOptions): Promise<string> {
-    this.flowName = options.name;
-    const flow = this.buildFlow();
+  private exportNotes(notes: string): string {
     const debugNotes = this.stateValue.debugLog.length
       ? ['Recorder debug log:', ...this.stateValue.debugLog].join('\n')
       : '';
-    const zipPath = await writeFlowPackage({
+    return [notes, ...this.stateValue.notes, debugNotes].filter(Boolean).join('\n');
+  }
+
+  private async capturePageContext(page: Page): Promise<PageContextSnapshot | undefined> {
+    try {
+      return await capturePageContextFromPage(page);
+    } catch (error) {
+      this.appendDebug(`page context capture skipped: ${String(error)}`);
+      return undefined;
+    }
+  }
+
+  previewOperationMarkdown(options: { name?: string; notes?: string } = {}): string {
+    const flow = {
+      ...this.buildFlow(),
+      name: options.name || this.flowName
+    };
+    return buildOperationMarkdown({
       flow,
       metadata: this.buildMetadata(),
-      notes: [options.notes, ...this.stateValue.notes, debugNotes].filter(Boolean).join('\n'),
-      reviewMarkdown: options.reviewMarkdown,
-      screenshotsDir: this.screenshotsDir,
-      outputDir: options.outputDir,
-      packageName: options.name
+      notes: this.exportNotes(options.notes || '')
     });
-    this.stateValue.exportPath = zipPath;
-    return zipPath;
+  }
+
+  async exportRecording(options: ExportRecordingOptions): Promise<string> {
+    this.flowName = options.name;
+    const flow = this.buildFlow();
+    const documentPath = await writeOperationMarkdown({
+      flow,
+      metadata: this.buildMetadata(),
+      notes: this.exportNotes(options.notes),
+      outputDir: options.outputDir,
+      documentName: options.name
+    });
+    this.stateValue.exportPath = documentPath;
+    return documentPath;
   }
 
   async close(): Promise<void> {
