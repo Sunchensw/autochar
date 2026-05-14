@@ -161,10 +161,27 @@ export class RecorderSession {
     await this.installCapture();
     this.page = await this.context.newPage();
     this.attachPage(this.page);
-    await this.page.goto(startUrl);
+    await this.navigateToStartUrl(this.page, startUrl);
     await this.updateMetadataViewport();
     this.stateValue.isOpen = true;
     this.appendDebug(`opened browser at ${startUrl}`);
+  }
+
+  private async navigateToStartUrl(page: Page, startUrl: string): Promise<void> {
+    try {
+      await page.goto(startUrl, { waitUntil: 'domcontentloaded', timeout: 45000 });
+    } catch (error) {
+      const currentUrl = page.url();
+      const message = String(error);
+      if (currentUrl && currentUrl !== 'about:blank' && message.toLowerCase().includes('timeout')) {
+        this.appendDebug(`initial navigation timed out after DOM wait; continuing with ${currentUrl}`);
+        await page.waitForLoadState('domcontentloaded', { timeout: 3000 }).catch((waitError) => {
+          this.appendDebug(`initial domcontentloaded follow-up skipped: ${String(waitError)}`);
+        });
+        return;
+      }
+      throw error;
+    }
   }
 
   private async updateMetadataViewport(page = this.page) {

@@ -139,6 +139,22 @@ describe('RecorderSession capture plumbing', () => {
     expect(playwrightMock.page.exposeBinding).not.toHaveBeenCalled();
   });
 
+  test('keeps recorder open when the initial page load times out after DOM is reachable', async () => {
+    playwrightMock.reset();
+    const workDir = fs.mkdtempSync(path.join(os.tmpdir(), 'autochar-session-goto-timeout-'));
+    const session = new RecorderSession({ workDir, headless: false });
+    playwrightMock.page.goto.mockRejectedValueOnce(new Error('page.goto: Timeout 30000ms exceeded'));
+
+    await expect(session.open('https://docs.crawl4ai.com/core/quickstart/')).resolves.toBeUndefined();
+
+    expect(playwrightMock.page.goto).toHaveBeenCalledWith(
+      'https://docs.crawl4ai.com/core/quickstart/',
+      expect.objectContaining({ waitUntil: 'domcontentloaded' })
+    );
+    expect(session.getState().isOpen).toBe(true);
+    expect(session.getState().debugLog.some((line) => line.includes('initial navigation timed out'))).toBe(true);
+  });
+
   test('records safe debug log entries when captured actions reach the binding', async () => {
     playwrightMock.reset();
     const workDir = fs.mkdtempSync(path.join(os.tmpdir(), 'autochar-session-log-'));
