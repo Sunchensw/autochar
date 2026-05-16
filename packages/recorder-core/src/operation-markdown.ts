@@ -211,12 +211,113 @@ function riskLines(flow: FlowPackage): string {
   return lines.length ? Array.from(new Set(lines)).join('\n') : '- 未发现高风险动作。仍建议执行前人工核对目标页面和变量。';
 }
 
-function sanitizeStructuredStep(step: FlowStep) {
+function pageKey(step: FlowStep): string {
+  return `${step.title}|${step.url}`;
+}
+
+function pageId(index: number): string {
+  return `page-${String(index + 1).padStart(3, '0')}`;
+}
+
+function compactElementList(context: PageContextSnapshot | undefined) {
+  return (context?.interactables ?? [])
+    .slice(0, 15)
+    .map((item) => ({
+      label: cleanText(item.label || item.text || item.role || item.tagName, 120),
+      role: cleanText(item.role, 80) || undefined,
+      selector: cleanText(item.selector, 180) || undefined,
+      area: cleanText(item.area, 120) || undefined
+    }))
+    .filter((item) => item.label || item.selector);
+}
+
+function compactForms(context: PageContextSnapshot | undefined) {
+  return (context?.forms ?? [])
+    .slice(0, 5)
+    .map((form, index) => ({
+      label: cleanText(form.label || form.name || form.id || `form-${index + 1}`, 120),
+      fields: (form.fields ?? [])
+        .slice(0, 10)
+        .map((field) => ({
+          label: cleanText(field.label || field.placeholder || field.name || field.type, 80),
+          name: cleanText(field.name, 80) || undefined,
+          type: cleanText(field.type, 40) || undefined
+        }))
+        .filter((field) => field.label || field.name)
+    }))
+    .filter((form) => form.label || form.fields.length);
+}
+
+function compactTables(context: PageContextSnapshot | undefined) {
+  return (context?.tables ?? [])
+    .slice(0, 3)
+    .map((table, index) => ({
+      label: cleanText(table.caption || `table-${index + 1}`, 120),
+      headers: (table.headers ?? []).slice(0, 8).map((item) => cleanText(item, 80)).filter(Boolean),
+      sampleRows: (table.rows ?? [])
+        .slice(0, 2)
+        .map((row) => row.slice(0, 6).map((item) => cleanText(item, 80)).filter(Boolean))
+        .filter((row) => row.length)
+    }));
+}
+
+function compactPages(flow: FlowPackage) {
+  const refs = new Map<string, string>();
+  const pages: Array<Record<string, unknown>> = [];
+  for (const step of flow.steps) {
+    const key = pageKey(step);
+    if (refs.has(key)) continue;
+    const id = pageId(pages.length);
+    refs.set(key, id);
+    pages.push({
+      id,
+      title: cleanText(step.title, 160),
+      url: cleanText(step.url, 300),
+      summary: cleanText(step.pageContext?.summaryText, 500),
+      interactables: compactElementList(step.pageContext),
+      forms: compactForms(step.pageContext),
+      tables: compactTables(step.pageContext),
+      warnings: (step.pageContext?.warnings ?? []).slice(0, 5).map((item) => cleanText(item, 180)).filter(Boolean)
+    });
+  }
+  return { pages, refs };
+}
+
+function compactVariables(flow: FlowPackage) {
+  return flow.steps
+    .map((step) => {
+      const token = variableToken(step);
+      if (!token) return undefined;
+      return {
+        name: token,
+        stepId: step.id,
+        label: cleanText(step.label, 160),
+        sensitive: step.sensitive
+      };
+    })
+    .filter(Boolean);
+}
+
+function compactRisks(flow: FlowPackage) {
+  return flow.steps
+    .filter((step) => step.sensitive || step.riskLevel !== 'low' || step.requiresConfirmation || step.requiresManualReview)
+    .map((step) => ({
+      stepId: step.id,
+      riskLevel: step.riskLevel,
+      sensitive: step.sensitive,
+      requiresConfirmation: step.requiresConfirmation,
+      requiresManualReview: step.requiresManualReview,
+      label: cleanText(step.label, 180)
+    }));
+}
+
+function sanitizeStructuredStep(step: FlowStep, pageRef: string | undefined) {
   return {
     id: step.id,
     order: step.order,
     type: step.type,
     label: cleanText(step.label, 260),
+    pageRef,
     url: cleanText(step.url, 320),
     title: cleanText(step.title, 200),
     framePath: step.framePath,
@@ -231,15 +332,16 @@ function sanitizeStructuredStep(step: FlowStep) {
     riskLevel: step.riskLevel,
     requiresConfirmation: step.requiresConfirmation,
     requiresManualReview: step.requiresManualReview,
-    timestamp: step.timestamp,
-    pageContext: step.pageContext
+    timestamp: step.timestamp
   };
 }
 
 function structuredData(input: BuildOperationMarkdownInput) {
+  const { pages, refs } = compactPages(input.flow);
   return {
     documentType: 'autochar-ai-operation-document',
     documentVersion: '1.0.0',
+    format: 'compact-ai-structure',
     safetyBoundary: {
       allowedUrlSchemes: ['http', 'https', 'raw'],
       disabledCapabilities: ['customHooks', 'customScripts', 'stealth', 'proxy', 'storageExport'],
@@ -251,9 +353,19 @@ function structuredData(input: BuildOperationMarkdownInput) {
       startUrl: cleanText(input.flow.startUrl, 320),
       createdAt: input.flow.createdAt
     },
-    metadata: input.metadata,
+    metadata: input.metadata
+      ? {
+          browser: input.metadata.browser,
+          viewport: input.metadata.viewport,
+          containsPassword: input.metadata.containsPassword,
+          containsCookies: input.metadata.containsCookies
+        }
+      : undefined,
     notes: cleanNotes(input.notes),
-    steps: input.flow.steps.map(sanitizeStructuredStep)
+    pages,
+    variables: compactVariables(input.flow),
+    risks: compactRisks(input.flow),
+    steps: input.flow.steps.map((step) => sanitizeStructuredStep(step, refs.get(pageKey(step))))
   };
 }
 

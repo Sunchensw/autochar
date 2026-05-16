@@ -178,6 +178,32 @@ describe('Autochar operation Markdown', () => {
     expect(JSON.parse(json!).steps).toHaveLength(3);
   });
 
+  test('emits compact structured data without repeating page context on every step', () => {
+    const markdown = buildOperationMarkdown({ flow, metadata });
+    const json = markdown.match(/```json\n([\s\S]*?)\n```/)?.[1];
+    const structured = JSON.parse(json!);
+
+    expect(structured.format).toBe('compact-ai-structure');
+    expect(structured.pages).toHaveLength(3);
+    expect(structured.pages[0]).toMatchObject({
+      id: 'page-001',
+      url: 'https://shop.jd.com/admin/products',
+      title: 'Products'
+    });
+    expect(structured.pages[0].summary.length).toBeLessThanOrEqual(500);
+    expect(structured.steps[0]).toMatchObject({
+      id: 'step-001',
+      pageRef: 'page-001'
+    });
+    expect(structured.steps[1]).toMatchObject({
+      id: 'step-002',
+      pageRef: 'page-002',
+      selectors: flow.steps[1].selectors
+    });
+    expect(JSON.stringify(structured.steps)).not.toContain('pageContext');
+    expect(JSON.stringify(structured.steps)).not.toContain('summaryText');
+  });
+
   test('writes a single .autochar.md file', async () => {
     const outputDir = fs.mkdtempSync(path.join(os.tmpdir(), 'autochar-operation-doc-'));
 
