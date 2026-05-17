@@ -4,6 +4,7 @@ recordings/
 generated/
 results/
 release/
+/tmp/
 .env
 ms-playwright/
 playwright-report/
