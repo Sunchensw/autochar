@@ -28,6 +28,7 @@ import {
 } from './screenshot';
 import { capturePageContextFromPage, isAllowedRecordingUrl } from './page-context';
 import { buildOperationMarkdown, writeOperationMarkdown } from './operation-markdown';
+import { writeMaterialPackage, type WriteMaterialPackageResult } from './material-package';
 
 export interface RecorderSessionOptions {
   workDir?: string;
@@ -48,6 +49,7 @@ export interface RecordingState {
   debugLogPath?: string;
   remoteDebuggingPort?: number;
   exportPath?: string;
+  materialPackagePath?: string;
 }
 
 export interface ExportRecordingOptions {
@@ -423,7 +425,15 @@ export class RecorderSession {
     this.lastScreenshotState = undefined;
     this.lastScreenshotRef = undefined;
     this.lastNavigationKeys.set(this.page, `${this.page.url()}|${await this.page.title()}|${this.navigationRevision}`);
-    this.stateValue = { ...this.stateValue, isRecording: true, stepCount: 0, screenshotCount: 0, notes: [] };
+    this.stateValue = {
+      ...this.stateValue,
+      isRecording: true,
+      stepCount: 0,
+      screenshotCount: 0,
+      notes: [],
+      exportPath: undefined,
+      materialPackagePath: undefined
+    };
     this.appendDebug('recording started');
     const id = stepId(1);
     const screenshotFile = 'step-001-start.png';
@@ -607,6 +617,18 @@ export class RecorderSession {
     });
     this.stateValue.exportPath = documentPath;
     return documentPath;
+  }
+
+  async exportMaterialPackage(options: ExportRecordingOptions): Promise<WriteMaterialPackageResult> {
+    this.flowName = options.name;
+    const result = await writeMaterialPackage({
+      flow: this.buildFlow(),
+      notes: this.exportNotes(options.notes),
+      outputDir: options.outputDir,
+      documentName: options.name
+    });
+    this.stateValue.materialPackagePath = result.outputDir;
+    return result;
   }
 
   async close(): Promise<void> {

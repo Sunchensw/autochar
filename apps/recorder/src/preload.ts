@@ -7,6 +7,7 @@ contextBridge.exposeInMainWorld('autocharRecorder', {
   startExtension: () => ipcRenderer.invoke('recorder:extension-start'),
   stop: () => ipcRenderer.invoke('recorder:stop'),
   export: (payload: { name: string; notes: string }) => ipcRenderer.invoke('recorder:export', payload),
+  exportMaterials: (payload: { name: string; notes: string }) => ipcRenderer.invoke('recorder:export-materials', payload),
   state: () => ipcRenderer.invoke('recorder:state'),
   openExtensionFolder: () => ipcRenderer.invoke('recorder:open-extension-folder'),
   closeBrowser: () => ipcRenderer.invoke('recorder:close-browser')

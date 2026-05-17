@@ -43,8 +43,9 @@ export function buildPageContextScript(): string {
     const explicit = attr(el, 'aria-label') || labelledBy(el);
     if (explicit) return clean(explicit, 160);
     const id = attr(el, 'id');
-    if (id && window.CSS && CSS.escape) {
-      const label = document.querySelector('label[for="' + CSS.escape(id) + '"]');
+    if (id) {
+      const esc = window.CSS && CSS.escape ? CSS.escape(id) : String(id).replace(/["\\\\]/g, '\\\\$&');
+      const label = document.querySelector('label[for="' + esc + '"]');
       if (text(label)) return clean(text(label), 160);
     }
     return clean(text(el.closest && el.closest('label')), 160);
@@ -87,9 +88,43 @@ export function buildPageContextScript(): string {
     const host = el.closest && (el.closest('tr') || el.closest('label') || el.closest('form') || el.parentElement);
     return clean(text(host), 280);
   };
+  const selectedTextOf = (el) => {
+    const tag = (el.tagName || '').toLowerCase();
+    if (tag === 'select') {
+      return clean(Array.from(el.selectedOptions || []).map((option) => text(option)).filter(Boolean).join(', '), 200);
+    }
+    return clean(attr(el, 'aria-valuetext') || attr(el, 'title'), 200);
+  };
+  const optionsOf = (el) => {
+    const tag = (el.tagName || '').toLowerCase();
+    if (tag === 'select') {
+      return Array.from(el.options || [])
+        .slice(0, 300)
+        .map((option) => ({
+          label: clean(text(option) || option.label || option.value, 160),
+          value: clean(option.value, 160),
+          disabled: Boolean(option.disabled),
+          selected: Boolean(option.selected)
+        }))
+        .filter((option) => option.label);
+    }
+    if (attr(el, 'role') === 'listbox') {
+      return Array.from(el.querySelectorAll('[role="option"]'))
+        .slice(0, 300)
+        .map((option) => ({
+          label: clean(text(option), 160),
+          value: clean(attr(option, 'data-value') || attr(option, 'value'), 160),
+          disabled: attr(option, 'aria-disabled') === 'true',
+          selected: attr(option, 'aria-selected') === 'true'
+        }))
+        .filter((option) => option.label);
+    }
+    return undefined;
+  };
   const elementSummary = (el) => {
     const type = attr(el, 'type');
     const label = labelText(el);
+    const options = optionsOf(el);
     const item = {
       tagName: (el.tagName || '').toUpperCase(),
       type,
@@ -98,12 +133,18 @@ export function buildPageContextScript(): string {
       label,
       placeholder: clean(attr(el, 'placeholder'), 160),
       role: roleOf(el),
+      contentEditable: clean(attr(el, 'contenteditable'), 40),
       text: sensitivePattern.test([type, label, attr(el, 'name'), attr(el, 'id')].join(' ')) ? '' : clean(text(el), 220),
       href: clean(attr(el, 'href'), 260),
       selector: cssSelector(el),
       nearbyText: nearbyTextOf(el),
       rowText: rowTextOf(el),
-      area: areaOf(el)
+      area: areaOf(el),
+      required: Boolean(el.required) || attr(el, 'aria-required') === 'true',
+      disabled: Boolean(el.disabled) || attr(el, 'aria-disabled') === 'true',
+      checked: Boolean(el.checked) || attr(el, 'aria-checked') === 'true',
+      selectedText: selectedTextOf(el),
+      options
     };
     return Object.fromEntries(Object.entries(item).filter(([, value]) => value));
   };

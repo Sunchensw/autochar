@@ -14,6 +14,7 @@ import {
 import { normalizeCapturedAction, type CapturedAction } from './action-capture';
 import { isAllowedRecordingUrl } from './page-context';
 import { buildOperationMarkdown, writeOperationMarkdown } from './operation-markdown';
+import { writeMaterialPackage, type WriteMaterialPackageResult } from './material-package';
 import type { ExportRecordingOptions, RecordingState } from './recorder-session';
 
 export interface ExtensionRecorderSessionOptions {
@@ -130,7 +131,8 @@ export class ExtensionRecorderSession {
       screenshotCount: 0,
       lastAction: undefined,
       notes: [],
-      exportPath: undefined
+      exportPath: undefined,
+      materialPackagePath: undefined
     };
     this.appendDebug('extension recording started');
   }
@@ -186,6 +188,18 @@ export class ExtensionRecorderSession {
     });
     this.stateValue.exportPath = documentPath;
     return documentPath;
+  }
+
+  async exportMaterialPackage(options: ExportRecordingOptions): Promise<WriteMaterialPackageResult> {
+    this.flowName = options.name;
+    const result = await writeMaterialPackage({
+      flow: this.buildFlow(),
+      notes: this.exportNotes(options.notes),
+      outputDir: options.outputDir,
+      documentName: options.name
+    });
+    this.stateValue.materialPackagePath = result.outputDir;
+    return result;
   }
 
   async close(): Promise<void> {

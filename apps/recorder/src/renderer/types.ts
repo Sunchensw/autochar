@@ -9,6 +9,7 @@ export interface RecordingState {
   debugLogPath?: string;
   remoteDebuggingPort?: number;
   exportPath?: string;
+  materialPackagePath?: string;
   operationMarkdown?: string;
   extension?: ExtensionInfo;
 }
@@ -34,6 +35,7 @@ export interface AutocharRecorderApi {
   startExtension: () => Promise<RecordingState>;
   stop: () => Promise<StopResult>;
   export: (payload: { name: string; notes: string }) => Promise<RecordingState>;
+  exportMaterials: (payload: { name: string; notes: string }) => Promise<RecordingState>;
   state: () => Promise<RecordingState>;
   openExtensionFolder: () => Promise<void>;
   closeBrowser: () => Promise<RecordingState>;

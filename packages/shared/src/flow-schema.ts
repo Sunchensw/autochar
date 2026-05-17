@@ -27,12 +27,29 @@ export const pageContextElementSchema = z
     label: z.string().optional(),
     placeholder: z.string().optional(),
     role: z.string().optional(),
+    contentEditable: z.string().optional(),
     text: z.string().optional(),
     href: z.string().optional(),
     selector: z.string().optional(),
     nearbyText: z.string().optional(),
     rowText: z.string().optional(),
-    area: z.string().optional()
+    area: z.string().optional(),
+    required: z.boolean().optional(),
+    disabled: z.boolean().optional(),
+    checked: z.boolean().optional(),
+    selectedText: z.string().optional(),
+    options: z
+      .array(
+        z.object({
+          label: z.string(),
+          value: z.string().optional(),
+          disabled: z.boolean().optional(),
+          selected: z.boolean().optional()
+        })
+      )
+      .optional(),
+    cascaderPath: z.array(z.string()).optional(),
+    cascaderPaths: z.array(z.array(z.string())).optional()
   })
   .passthrough();
 

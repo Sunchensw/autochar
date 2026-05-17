@@ -181,4 +181,58 @@ describe('ExtensionRecorderSession', () => {
     expect(markdown).toContain('User browser extension');
     expect(markdown).toContain('JD extension recording');
   });
+
+  test('exports extension recordings as an e-commerce material package', async () => {
+    const workDir = tempDir('autochar-extension-material-work-');
+    const outputDir = tempDir('autochar-extension-material-out-');
+    const session = new ExtensionRecorderSession({ workDir });
+
+    await session.startRecording();
+    await session.receiveEvent({
+      type: 'navigation',
+      label: 'Page loaded',
+      element: { tagName: 'HTML' },
+      url: 'https://vis.vip.com/index.php#/app-i/pdc-admin/admin#/product/add',
+      title: 'Vip product',
+      timestamp: '2026-05-16T10:03:00.000Z',
+      screenshotDataUrl: onePixelPng,
+      pageContext: {
+        summaryText: '商品分类 商品标题 保存',
+        interactables: [
+          {
+            tagName: 'DIV',
+            role: 'combobox',
+            label: '商品分类',
+            cascaderPaths: [['珠宝首饰', '饰品', '项链']]
+          },
+          {
+            tagName: 'BUTTON',
+            role: 'button',
+            text: '保存'
+          }
+        ],
+        forms: [
+          {
+            label: '商品资料',
+            fields: [{ tagName: 'INPUT', type: 'text', label: '商品标题', name: 'title' }]
+          }
+        ],
+        tables: [],
+        warnings: []
+      }
+    });
+    await session.stopRecording();
+
+    const result = await session.exportMaterialPackage({
+      name: 'VIP material',
+      notes: 'Generate code later.',
+      outputDir
+    });
+
+    expect(fs.existsSync(result.markdownPath)).toBe(true);
+    expect(fs.existsSync(result.dictionaryPath)).toBe(true);
+    expect(fs.existsSync(result.workbookPath)).toBe(true);
+    expect(session.getState().materialPackagePath).toBe(result.outputDir);
+    expect(fs.readdirSync(result.outputDir).sort()).toEqual(['field-dictionary.json', '字段模板.xlsx', '流程说明.md']);
+  });
 });

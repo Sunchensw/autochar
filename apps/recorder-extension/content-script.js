@@ -37,8 +37,9 @@
     const explicit = attr(el, 'aria-label') || labelledBy(el);
     if (explicit) return explicit;
     const id = attr(el, 'id');
-    if (id && window.CSS && CSS.escape) {
-      const label = document.querySelector(`label[for="${CSS.escape(id)}"]`);
+    if (id) {
+      const esc = window.CSS && CSS.escape ? CSS.escape(id) : String(id).replace(/["\\]/g, '\\$&');
+      const label = document.querySelector(`label[for="${esc}"]`);
       if (text(label)) return text(label);
     }
     return text(el.closest && el.closest('label'));
@@ -123,9 +124,43 @@
     if (name) return `${tag}[name="${esc(name)}"]`;
     return tag;
   };
+  const selectedTextOf = (el) => {
+    const tag = (el.tagName || '').toLowerCase();
+    if (tag === 'select') {
+      return cleanContextText(Array.from(el.selectedOptions || []).map((option) => text(option)).filter(Boolean).join(', '), 200);
+    }
+    return cleanContextText(attr(el, 'aria-valuetext') || attr(el, 'title'), 200);
+  };
+  const optionsOf = (el) => {
+    const tag = (el.tagName || '').toLowerCase();
+    if (tag === 'select') {
+      return Array.from(el.options || [])
+        .slice(0, 300)
+        .map((option) => ({
+          label: cleanContextText(text(option) || option.label || option.value, 160),
+          value: cleanContextText(option.value, 160),
+          disabled: Boolean(option.disabled),
+          selected: Boolean(option.selected)
+        }))
+        .filter((option) => option.label);
+    }
+    if (attr(el, 'role') === 'listbox') {
+      return Array.from(el.querySelectorAll('[role="option"]'))
+        .slice(0, 300)
+        .map((option) => ({
+          label: cleanContextText(text(option), 160),
+          value: cleanContextText(attr(option, 'data-value') || attr(option, 'value'), 160),
+          disabled: attr(option, 'aria-disabled') === 'true',
+          selected: attr(option, 'aria-selected') === 'true'
+        }))
+        .filter((option) => option.label);
+    }
+    return undefined;
+  };
   const elementContext = (el) => {
     const label = labelText(el);
     const type = attr(el, 'type');
+    const options = optionsOf(el);
     const sensitive = /(password|passwd|pwd|secret|token|cookie|authorization|验证码|密码|口令|令牌)/i
       .test([type, label, attr(el, 'name'), attr(el, 'id')].join(' '));
     const area = el.closest && el.closest('[aria-label], section, main, aside, nav, form, dialog, [role="dialog"], [role="main"], [role="region"]');
@@ -139,12 +174,18 @@
       label: cleanContextText(label, 160),
       placeholder: cleanContextText(attr(el, 'placeholder'), 160),
       role: roleOf(el),
+      contentEditable: cleanContextText(attr(el, 'contenteditable'), 40),
       text: sensitive ? '' : cleanContextText(text(el), 220),
       href: cleanContextText(attr(el, 'href'), 260),
       selector: cssSelector(el),
       nearbyText: cleanContextText(text(nearby), 280),
       rowText: cleanContextText(text(row), 280),
-      area: cleanContextText(labelText(area) || attr(area, 'aria-label') || attr(area, 'role') || (area && area.tagName), 120)
+      area: cleanContextText(labelText(area) || attr(area, 'aria-label') || attr(area, 'role') || (area && area.tagName), 120),
+      required: Boolean(el.required) || attr(el, 'aria-required') === 'true',
+      disabled: Boolean(el.disabled) || attr(el, 'aria-disabled') === 'true',
+      checked: Boolean(el.checked) || attr(el, 'aria-checked') === 'true',
+      selectedText: selectedTextOf(el),
+      options
     }).filter(([, value]) => value));
   };
   const pageContext = () => {

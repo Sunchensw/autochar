@@ -132,6 +132,24 @@ ipcMain.handle('recorder:export', async (_event, payload: { name: string; notes:
   return { ...current.getState(), exportPath: documentPath, operationMarkdown: lastOperationMarkdown };
 });
 
+ipcMain.handle('recorder:export-materials', async (_event, payload: { name: string; notes: string }) => {
+  const current = activeSession();
+  if (!current || !stopped) throw new Error('Stop recording before exporting materials.');
+  const selection = await dialog.showOpenDialog(mainWindow!, {
+    title: '选择电商材料包导出目录',
+    properties: ['openDirectory', 'createDirectory']
+  });
+  if (selection.canceled || !selection.filePaths[0]) {
+    return current.getState();
+  }
+  const result = await current.exportMaterialPackage({
+    name: payload.name || 'Autochar Recording',
+    notes: payload.notes || '',
+    outputDir: selection.filePaths[0]
+  });
+  return { ...current.getState(), materialPackagePath: result.outputDir };
+});
+
 ipcMain.handle('recorder:extension-info', async () => {
   const receiver = await ensureExtensionReceiver();
   return {
@@ -171,7 +189,8 @@ ipcMain.handle('recorder:state', async () => activeSession()?.getState() ?? {
   stepCount: 0,
   screenshotCount: 0,
   notes: [],
-  debugLog: []
+  debugLog: [],
+  materialPackagePath: undefined
 });
 
 ipcMain.handle('recorder:close-browser', async () => {
@@ -188,7 +207,8 @@ ipcMain.handle('recorder:close-browser', async () => {
     stepCount: 0,
     screenshotCount: 0,
     notes: [],
-    debugLog: []
+    debugLog: [],
+    materialPackagePath: undefined
   };
 });
 

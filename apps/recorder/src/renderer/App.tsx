@@ -181,6 +181,11 @@ export function App() {
     if (next.operationMarkdown) setOperationMarkdown(next.operationMarkdown);
   }
 
+  async function exportMaterials() {
+    const next = await api.exportMaterials({ name: flowName, notes });
+    setState(next);
+  }
+
   async function closeRecorder() {
     const next = await api.closeBrowser();
     setState(next);
@@ -213,8 +218,10 @@ export function App() {
           description={<Text size={200}>停止录制后生成单个 .autochar.md</Text>}
         />
         <Text className="pathText">{state.exportPath || '尚未导出'}</Text>
+        <Text className="pathText">{state.materialPackagePath || '材料包尚未导出'}</Text>
         <div className="buttonRow">
           <Button appearance="primary" icon={<ArrowDownload24Regular />} disabled={!canExport || busy} onClick={() => run(exportMarkdown)}>导出文档</Button>
+          <Button icon={<ArrowDownload24Regular />} disabled={!canExport || busy} onClick={() => run(exportMaterials)}>导出材料包</Button>
           <Button icon={<Document24Regular />} disabled={!operationMarkdown} onClick={() => setView('document')}>查看预览</Button>
         </div>
       </Card>
@@ -316,7 +323,9 @@ export function App() {
         <Text size={200} weight="semibold">备注</Text>
         <Textarea value={notes} onChange={(_, data) => setNotes(data.value)} resize="vertical" />
         <Button appearance="primary" icon={<ArrowDownload24Regular />} disabled={!canExport || busy} onClick={() => run(exportMarkdown)}>导出 .autochar.md</Button>
+        <Button icon={<ArrowDownload24Regular />} disabled={!canExport || busy} onClick={() => run(exportMaterials)}>导出电商材料包</Button>
         <Text className="pathText">{state.exportPath || '停止录制后可导出文档。'}</Text>
+        <Text className="pathText">{state.materialPackagePath || '材料包会包含 流程说明.md、field-dictionary.json、字段模板.xlsx。'}</Text>
       </Card>
       <Card className="previewCard">
         <Textarea
