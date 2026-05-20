@@ -1,6 +1,7 @@
 appId: com.autochar.recorder
 productName: Autochar Recorder
 electronVersion: 31.7.7
+electronDist: ../../node_modules/electron/dist
 directories:
   output: ../../release/user
 files:

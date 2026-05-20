@@ -6,10 +6,11 @@ const root = process.cwd();
 const browsersPath = path.join(root, 'ms-playwright');
 const env = {
   ...process.env,
+  PLAYWRIGHT_DOWNLOAD_CONNECTION_TIMEOUT: process.env.PLAYWRIGHT_DOWNLOAD_CONNECTION_TIMEOUT ?? '180000',
   PLAYWRIGHT_BROWSERS_PATH: browsersPath
 };
 
-const result = spawnSync('npx', ['playwright', 'install', 'chromium'], {
+const result = spawnSync('npx', ['playwright', 'install', 'chromium', '--no-shell'], {
   cwd: root,
   env,
   stdio: 'inherit',

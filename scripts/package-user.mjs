@@ -5,6 +5,10 @@ import { spawnSync } from 'node:child_process';
 function run(command, args) {
   const result = spawnSync(command, args, {
     cwd: process.cwd(),
+    env: {
+      ...process.env,
+      PLAYWRIGHT_DOWNLOAD_CONNECTION_TIMEOUT: process.env.PLAYWRIGHT_DOWNLOAD_CONNECTION_TIMEOUT ?? '180000'
+    },
     stdio: 'inherit',
     shell: process.platform === 'win32'
   });
